@@ -1,0 +1,190 @@
+import assert from 'node:assert/strict'
+import { readFileSync, statSync } from 'node:fs'
+import test from 'node:test'
+
+const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
+const fileImport = readFileSync(new URL('../src/file-import.ts', import.meta.url), 'utf8')
+const optionsSource = readFileSync(new URL('../src/options.ts', import.meta.url), 'utf8')
+
+function radioValues(name: string): string[] {
+  const pattern = new RegExp(`<input[^>]+name="${name}"[^>]+value="([^"]+)"[^>]*>`, 'g')
+  return [...html.matchAll(pattern)].map((match) => match[1] ?? '')
+}
+
+function checkedRadio(name: string): string | undefined {
+  const pattern = new RegExp(`<input[^>]+name="${name}"[^>]+value="([^"]+)"[^>]*checked[^>]*>`)
+  return pattern.exec(html)?.[1]
+}
+
+function spacingRuleValues(): string[] {
+  return [...html.matchAll(/data-math-spacing-rule="([^"]+)"/g)]
+    .map((match) => match[1] ?? '')
+}
+
+test('uses the BibTeX Tidy editor and fixed-sidebar structure', () => {
+  assert.match(html, /<main id="editor"/)
+  assert.match(html, /<aside id="sidebar"/)
+  assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\) 400px/)
+  assert.match(css, /#editor[\s\S]*height:\s*100vh/)
+  assert.match(css, /#sidebar[\s\S]*height:\s*100vh/)
+  assert.doesNotMatch(html, /topbar|class="panel"|site-footer|diagnostics-panel/)
+})
+
+test('uses the ProofWeave brand and publishing-focused description', () => {
+  assert.match(html, /<title>ProofWeave — Convert Markdown proofs into clean LaTeX<\/title>/)
+  assert.match(html, /<h1>ProofWeave<\/h1>/)
+  assert.match(html, /AI-generated Markdown mathematical proofs/)
+  assert.match(html, /publishing, reading, and continued editing/)
+  assert.doesNotMatch(html, /Markdown to LaTeX/)
+})
+
+test('defaults to the light theme while preserving a stored dark choice', () => {
+  assert.match(html, /<html[^>]+data-theme="light"/)
+  assert.match(html, /<meta name="theme-color" content="#ffffff"/)
+  assert.match(html, /aria-label="Switch to dark mode"/)
+  assert.match(html, /aria-pressed="true"/)
+  assert.match(html, /localStorage\.getItem\('proofweave-theme'\) === 'dark' \? 'dark' : 'light'/)
+  assert.match(main, /localStorage\.getItem\(THEME_STORAGE_KEY\) === 'dark' \? 'dark' : 'light'/)
+  assert.match(main, /return 'light'/)
+})
+
+test('exposes all editor views and conversion options as sidebar radios', () => {
+  assert.deepEqual(radioValues('view'), ['markdown', 'latex'])
+  assert.deepEqual(radioValues('indent'), ['tab', '2', '4', '0'])
+  assert.equal(checkedRadio('indent'), 'tab')
+  assert.deepEqual(radioValues('inline'), ['dollar', 'parentheses'])
+  assert.equal(checkedRadio('inline'), 'dollar')
+  assert.deepEqual(radioValues('statementDisplay'), ['dollars', 'brackets', 'equation'])
+  assert.equal(checkedRadio('statementDisplay'), 'equation')
+  assert.deepEqual(radioValues('outsideDisplay'), ['dollars', 'brackets', 'equation'])
+  assert.equal(checkedRadio('outsideDisplay'), 'brackets')
+  assert.deepEqual(radioValues('sectionNumbering'), ['unnumbered', 'numbered'])
+  assert.equal(checkedRadio('sectionNumbering'), 'unnumbered')
+  assert.equal(radioValues('display').length, 0)
+  assert.deepEqual(spacingRuleValues(), [
+    'relations',
+    'binaryOperators',
+    'punctuation',
+    'compactParentheses',
+    'pairedBars',
+    'namedFunctions',
+    'fontCommandBraces',
+    'collapseSpaces',
+  ])
+  assert.match(html, /name="mathSpacingEnabled" checked/)
+  assert.match(html, /name="removeBoxed" checked/)
+  assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 8)
+  assert.match(html, /class="option-row math-spacing-master"[\s\S]*class="math-spacing-rules"/)
+  assert.ok(html.indexOf('name="mathSpacingEnabled"') < html.indexOf('data-math-spacing-rule="relations"'))
+  assert.ok(html.indexOf('<summary>Math spacing</summary>') < html.indexOf('<summary>Diagnostics</summary>'))
+  assert.match(html, /<summary>Diagnostics<\/summary>/)
+  assert.match(html, /id="primary-action"[\s\S]*View LaTeX/)
+  assert.match(html, /id="download-output"/)
+})
+
+test('uses sentence case headings and places a dynamic CLI panel last', () => {
+  assert.deepEqual(
+    [...html.matchAll(/<summary>([^<]+)<\/summary>/g)].map((match) => match[1]),
+    [
+      'View',
+      'Indentation',
+      'Inline math',
+      'Statement display math',
+      'Other display math',
+      'Section headings',
+      'Math spacing',
+      'Cleanup',
+      'Diagnostics',
+      'CLI',
+    ],
+  )
+  assert.match(html, /<details id="cli-panel">[\s\S]*<summary>CLI<\/summary>/)
+  assert.match(html, /To run this configuration on the command line:/)
+  assert.match(html, /id="cli-command"[\s\S]*proofweave YOUR_FILE\.md/)
+  assert.ok(html.indexOf('<summary>Diagnostics</summary>') < html.indexOf('<summary>CLI</summary>'))
+  assert.ok(html.indexOf('<summary>CLI</summary>') < html.indexOf('</form>'))
+  assert.match(main, /function renderCLICommand\(\)/)
+  assert.match(main, /optionsToCLIArgs\(options\)/)
+  assert.match(main, /cliCommandOutput\.dataset\.command = cliCommand\(options\)/)
+  assert.match(optionsSource, /export function optionsToCLIArgs/)
+  assert.match(optionsSource, /export function parseCLIArguments/)
+})
+
+test('keeps the requested interactions wired to the new interface', () => {
+  for (const behavior of [
+    'convertMarkdown',
+    'updateLineNumbers',
+    'setView',
+    'navigator.clipboard.writeText',
+    "anchor.download = 'proofweave-output.tex'",
+    'primaryAction.disabled',
+    'statementDisplayMath',
+    'outsideDisplayMath',
+    'sectionNumbering',
+    'mathSpacing',
+    'isMathSpacingRule',
+    'removeBoxed',
+    'updateMathSpacingControls',
+    "input.disabled = !options.mathSpacing.enabled",
+    'themeToggle',
+    'readStoredTheme',
+    'currentTheme',
+    'applyTheme',
+    'localStorage.setItem(THEME_STORAGE_KEY, theme)',
+    "document.documentElement.dataset.theme = theme",
+    'themeToggle.addEventListener',
+    'updateThemeColor',
+    'highlightCode',
+    'validateMarkdownDrop',
+    'isFileDrag',
+    "includes('Files')",
+    "setView('latex')",
+    "event.dataTransfer.dropEffect = view === 'markdown' ? 'copy' : 'none'",
+  ]) {
+    assert.ok(main.includes(behavior), `Missing UI behavior: ${behavior}`)
+  }
+  assert.doesNotMatch(main, /\bdisplayMath:/)
+  assert.match(html, /id="highlight-layer"[\s\S]*id="highlight-code"/)
+  assert.match(html, /id="drop-overlay"/)
+  assert.match(html, /id="editor-file-message"[^>]+role="alert"/)
+  assert.match(css, /#document-editor[\s\S]*-webkit-text-fill-color:\s*transparent/)
+  assert.match(css, /#highlight-layer,[\s\S]*#document-editor[\s\S]*tab-size:\s*4/)
+  assert.match(css, /#document-editor::selection,[\s\S]*#document-editor::-moz-selection[\s\S]*background:\s*var\(--selection-bg\)/)
+  assert.match(css, /#document-editor::selection,[\s\S]*color:\s*transparent/)
+  assert.match(css, /--selection-bg:\s*rgba\(/)
+  assert.match(css, /input\[type='checkbox'\]/)
+  assert.match(css, /\.math-spacing-rules\s*\{[\s\S]*margin:\s*0/)
+  assert.match(css, /\.option-row:has\(input:disabled\)[\s\S]*opacity:\s*0\.45/)
+  assert.match(css, /:root\[data-theme='light'\]/)
+  assert.match(css, /--accent|--red:\s*#b31b1b/)
+  assert.match(css, /\.token-command\s*\{\s*color:\s*var\(--light-blue\)/)
+  assert.match(css, /\.token-math,[\s\S]*\.token-number\s*\{\s*color:\s*var\(--green\)/)
+  assert.match(html, /id="theme-toggle"[^>]+aria-label="Switch to dark mode"/)
+  assert.match(html, /class="theme-icon theme-icon-sun"/)
+  assert.match(html, /class="theme-icon theme-icon-moon"/)
+  assert.match(main, /dragover[\s\S]*event\.preventDefault\(\)/)
+  assert.match(main, /drop[\s\S]*event\.preventDefault\(\)/)
+  assert.match(main, /source = await readMarkdownFile\(file\)[\s\S]*convert\(\)[\s\S]*setView\('latex'\)/)
+  assert.match(fileImport, /File import is only available while editing Markdown\./)
+  assert.match(fileImport, /Unsupported file type\. Drop a \.md file while editing Markdown\./)
+})
+
+test('ships the same local font families used by the reference interface', () => {
+  for (const name of [
+    'IBMPlexSans-Light.woff2',
+    'IBMPlexSans-Medium.woff2',
+    'Inconsolata-Regular.woff2',
+  ]) {
+    const url = new URL(`../public/fonts/${name}`, import.meta.url)
+    assert.ok(statSync(url).size > 30_000, `${name} is missing or truncated`)
+    assert.ok(css.includes(`/fonts/${name}`))
+  }
+})
+
+test('provides the narrow-screen stacked layout without negative tracking', () => {
+  assert.match(css, /@media \(max-width: 760px\)/)
+  assert.match(css, /#sidebar[\s\S]*width:\s*100%/)
+  assert.doesNotMatch(css, /letter-spacing:\s*-/)
+})

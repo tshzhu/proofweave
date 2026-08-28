@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta
+      name="description"
+      content="Turn AI-generated Markdown mathematical proofs into clean LaTeX proofs ready for publishing, reading, and continued editing."
+    />
+    <title>ProofWeave — Convert Markdown proofs into clean LaTeX</title>
+    <script>
+      try {
+        const theme = localStorage.getItem('proofweave-theme') === 'dark' ? 'dark' : 'light'
+        document.documentElement.dataset.theme = theme
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#ffffff' : '#1c222a')
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <main id="editor" aria-label="Markdown and LaTeX editor">
+      <div class="editor-gutter" aria-hidden="true">
+        <pre id="line-numbers">1</pre>
+      </div>
+      <label class="sr-only" for="document-editor">Markdown source</label>
+      <div class="editor-stack">
+        <pre id="highlight-layer" aria-hidden="true"><code id="highlight-code"></code></pre>
+        <textarea
+          id="document-editor"
+          aria-describedby="editor-mode-status editor-file-message"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          wrap="off"
+        ></textarea>
+      </div>
+      <div id="drop-overlay" class="drop-overlay" aria-hidden="true">
+        <strong>Drop Markdown file</strong>
+        <span>Import one .md file and view the generated LaTeX</span>
+      </div>
+      <button id="editor-copy" class="editor-copy" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 7V4h12v13h-3v3H4V7h4Zm2 0h7v8h1V6h-8v1Zm5 2H6v9h9V9Z" />
+        </svg>
+        <span>Copy</span>
+      </button>
+    </main>
+
+    <aside id="sidebar" aria-label="Conversion options">
+      <form id="options-form">
+        <div class="toolbar-topline">
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            type="button"
+            aria-label="Switch to dark mode"
+            aria-pressed="true"
+            title="Switch to dark mode"
+          >
+            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4.2a7.8 7.8 0 1 0 0 15.6 7.8 7.8 0 0 0 0-15.6Zm0 13.6a5.8 5.8 0 1 1 0-11.6 5.8 5.8 0 0 1 0 11.6ZM11 1h2v2.3h-2V1Zm0 19.7h2V23h-2v-2.3ZM1 11h2.3v2H1v-2Zm19.7 0H23v2h-2.3v-2ZM3.6 2.2 5.2 3.8 3.6 5.4 2.2 3.8l1.4-1.6Zm15.2 15.2 1.6 1.6-1.4 1.6-1.6-1.6 1.4-1.6ZM20.4 2.2l1.4 1.6-1.6 1.6-1.4-1.6 1.6-1.6ZM3.6 17.4 5.2 19l-1.6 1.6-1.4-1.6 1.4-1.6Z" />
+            </svg>
+            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.8 15.1A8.9 8.9 0 0 1 8.9 3.2 9.3 9.3 0 1 0 20.8 15.1Z" />
+            </svg>
+            <span class="sr-only">Switch color theme</span>
+          </button>
+        </div>
+        <section class="intro">
+          <h1>ProofWeave</h1>
+          <p>
+            Refine AI-generated Markdown mathematical proofs into clean LaTeX
+            proof content ready for publishing, reading, and continued editing.
+            Everything stays in this browser and is never uploaded.
+          </p>
+          <div class="intro-actions">
+            <button id="load-example" class="btn" type="button">Load example</button>
+            <button id="clear-input" class="btn" type="button">Clear</button>
+          </div>
+          <p id="editor-mode-status" class="status-line" aria-live="polite">
+            Editing Markdown
+          </p>
+          <p id="document-stats" class="stats" aria-live="polite">
+            0 input / 0 output / 0 diagnostics
+          </p>
+          <p id="editor-file-message" class="file-message" role="alert" aria-live="assertive"></p>
+        </section>
+
+        <details open>
+          <summary>View</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="view" value="markdown" checked />
+              <span>Edit Markdown</span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="view" value="latex" />
+              <span>View LaTeX output</span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Indentation</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="indent" value="tab" checked />
+              <span>Indent with tabs</span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="indent" value="2" />
+              <span>Indent with 2 spaces</span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="indent" value="4" />
+              <span>Indent with 4 spaces</span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="indent" value="0" />
+              <span>No indentation</span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Inline math</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="inline" value="dollar" checked />
+              <span>Use <code>$...$</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="inline" value="parentheses" />
+              <span>Use <code>\(...\)</code></span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Statement display math</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="statementDisplay" value="dollars" />
+              <span>Use <code>$$...$$</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="statementDisplay" value="brackets" />
+              <span>Use <code>\[...\]</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="statementDisplay" value="equation" checked />
+              <span>Use <code>equation</code> environment</span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Other display math</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="outsideDisplay" value="dollars" />
+              <span>Use <code>$$...$$</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="outsideDisplay" value="brackets" checked />
+              <span>Use <code>\[...\]</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="outsideDisplay" value="equation" />
+              <span>Use <code>equation</code> environment</span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Section headings</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="radio" name="sectionNumbering" value="unnumbered" checked />
+              <span>Unnumbered <code>\section*{}</code></span>
+            </label>
+            <label class="option-row">
+              <input type="radio" name="sectionNumbering" value="numbered" />
+              <span>Numbered <code>\section{}</code></span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Math spacing</summary>
+          <div class="option-list">
+            <label class="option-row math-spacing-master">
+              <input type="checkbox" name="mathSpacingEnabled" checked />
+              <span>Format math spacing</span>
+            </label>
+            <div class="math-spacing-rules" aria-label="Math spacing rules">
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="relations" checked />
+                <span>Relations <small><code>=</code> <code>&lt;</code> <code>\le</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="binaryOperators" checked />
+                <span>Binary operators <small><code>+</code> <code>*</code> <code>\times</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="punctuation" checked />
+                <span>Punctuation <small>comma and semicolon</small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="compactParentheses" checked />
+                <span>Compact parentheses <small><code>f(x)</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="pairedBars" checked />
+                <span>Paired bars <small><code>| x |</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="namedFunctions" checked />
+                <span>Named functions <small><code>\sin x</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="fontCommandBraces" checked />
+                <span>Brace math font commands <small><code>\mathcal{X}</code></small></span>
+              </label>
+              <label class="option-row">
+                <input type="checkbox" data-math-spacing-rule="collapseSpaces" checked />
+                <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Cleanup</summary>
+          <div class="option-list">
+            <label class="option-row">
+              <input type="checkbox" name="removeBoxed" checked />
+              <span>Remove boxed commands <small><code>\boxed{x}</code> → <code>x</code></small></span>
+            </label>
+          </div>
+        </details>
+
+        <details open>
+          <summary>Diagnostics</summary>
+          <div id="diagnostics-list" class="diagnostics-list" aria-live="polite">
+            <div class="diagnostic-status success">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9.2 16.6-4-4 1.4-1.4 2.6 2.6 8.2-8.2L18.8 7l-9.6 9.6Z" />
+              </svg>
+              <span>No diagnostics for the current input.</span>
+            </div>
+          </div>
+        </details>
+
+        <details id="cli-panel">
+          <summary>CLI</summary>
+          <div class="cli-panel-content">
+            <p>To run this configuration on the command line:</p>
+            <code id="cli-command">proofweave YOUR_FILE.md</code>
+          </div>
+        </details>
+      </form>
+
+      <div class="run">
+        <p id="copy-status" class="copy-status" aria-live="polite"></p>
+        <button id="primary-action" class="primary-action" type="button">
+          View LaTeX
+        </button>
+        <button id="download-output" class="secondary-action" type="button">
+          Download .tex
+        </button>
+      </div>
+    </aside>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

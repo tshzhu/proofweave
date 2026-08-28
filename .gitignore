@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-cli/
+.vite/
+coverage/
+.tmp/
+*.log
+*.local
+
+# Local project notes and non-release Markdown
+*.md
+!README.md
+
+# Local environment and editor state
+.env
+.env.*
+!.env.example
+.cache/
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,34 @@
+{
+  "name": "proofweave",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Convert AI-generated Markdown mathematical proofs into clean, editable LaTeX proof content.",
+  "homepage": "https://tshzhu.github.io/proofweave/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tshzhu/proofweave.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
+  "bin": {
+    "proofweave": "./bin/proofweave.js"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check && npm run build:web && npm run build:cli",
+    "build:web": "vite build",
+    "build:cli": "vite build --config vite.cli.config.ts",
+    "check": "tsc --noEmit",
+    "cli": "node --experimental-strip-types src/cli.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3",
+    "vite": "8.2.2"
+  }
+}
