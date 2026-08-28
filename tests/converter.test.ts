@@ -22,11 +22,10 @@ test('renders the built-in example with structural blank lines only', () => {
   assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
-%
+
 % This Markdown note is kept as LaTeX comments.
 % ## This heading stays commented out
 % \[x*y\]
-%
 
 \begin{lemma}\label{lem:uniform-noise}
 	For every $x \in \mathcal{X}$,
@@ -91,11 +90,11 @@ After.`)
 
   assert.equal(result.diagnostics.length, 0)
   assert.equal(result.latex, String.raw`Before.
-%
+
 % # not a heading
 % \[x*y\]
 % - not a list
-%
+
 After.`)
   assert.doesNotMatch(result.latex, /\\section|\\item|\\begin\{equation\}/)
 })
@@ -103,13 +102,15 @@ After.`)
 test('preserves ordinary text around same-line comments and warns on unclosed comments', () => {
   const inline = convertMarkdown('Before <!-- hidden --> After')
   assert.equal(inline.latex, String.raw`Before
+
 %  hidden
+
 After`)
   assert.equal(inline.diagnostics.length, 0)
 
   const unclosed = convertMarkdown(`<!--
 still hidden`)
-  assert.match(unclosed.latex, /^%\n% still hidden$/)
+  assert.match(unclosed.latex, /^% still hidden$/)
   assert.ok(unclosed.diagnostics.some(({ code }) => code === 'unclosed-comment'))
 })
 
@@ -147,6 +148,34 @@ The actual proof follows.
   assert.match(result.latex, /% \\\[z=1\\\]/)
   assert.equal((result.latex.match(/\\begin\{proof\}/g) ?? []).length, 1)
   assert.equal((result.latex.match(/\\section|\\subsection|\\subsubsection/g) ?? []).length, 0)
+})
+
+test('trims only comment-edge blank lines and separates adjacent comment blocks', () => {
+  const result = convertMarkdown(`Before.
+<!--
+
+First paragraph.
+
+Second paragraph.
+
+-->
+<!-- -->
+<!--
+Third paragraph.
+-->
+After.`)
+
+  assert.equal(result.diagnostics.length, 0)
+  assert.equal(result.latex, String.raw`Before.
+
+% First paragraph.
+%
+% Second paragraph.
+
+% Third paragraph.
+
+After.`)
+  assert.doesNotMatch(result.latex, /%\n% First paragraph|Second paragraph\.\n%\n\nAfter/)
 })
 
 test('normalizes math-styled theorem references in inline and display math', () => {

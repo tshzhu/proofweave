@@ -82,6 +82,14 @@ interface ListMarker {
   markerWidth: number;
 }
 
+function trimCommentEdgeLines(lines: string[]): string[] {
+  let start = 0;
+  let end = lines.length;
+  while (start < end && !lines[start]!.trim()) start += 1;
+  while (end > start && !lines[end - 1]!.trim()) end -= 1;
+  return lines.slice(start, end);
+}
+
 const HEADING_RE = /^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/;
 const LIST_RE = /^(\s*)(?:(\d+)[.)]|([-+*]))[ \t]+(.*)$/;
 
@@ -250,7 +258,11 @@ function parseComment(
     if (before.trim()) {
       blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
     }
-    blocks.push({ type: "comment", line: startLine.number, lines: [remainder.slice(0, close)] });
+    blocks.push({
+      type: "comment",
+      line: startLine.number,
+      lines: trimCommentEdgeLines([remainder.slice(0, close)]),
+    });
     if (trailing.trim()) {
       blocks.push(...parseRange([{ text: trailing, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
     }
@@ -273,7 +285,11 @@ function parseComment(
       if (before.trim()) {
         blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
       }
-      blocks.push({ type: "comment", line: startLine.number, lines: commentLines });
+      blocks.push({
+        type: "comment",
+        line: startLine.number,
+        lines: trimCommentEdgeLines(commentLines),
+      });
       if (trailing.trim()) {
         blocks.push(...parseRange([{ text: trailing, number: lineAt(lines, cursor).number }], 0, 1, diagnostics, allowTheorems));
       }
@@ -297,7 +313,11 @@ function parseComment(
   if (before.trim()) {
     blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
   }
-  blocks.push({ type: "comment", line: startLine.number, lines: commentLines });
+  blocks.push({
+    type: "comment",
+    line: startLine.number,
+    lines: trimCommentEdgeLines(commentLines),
+  });
   return {
     blocks,
     next: end,

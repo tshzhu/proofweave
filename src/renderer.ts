@@ -190,10 +190,14 @@ function indentText(value: string, prefix: string): string {
 }
 
 function isStructuralBlock(block: Block): boolean {
-  return block.type === "heading" || block.type === "list" || block.type === "theorem";
+  return block.type === "heading"
+    || block.type === "list"
+    || block.type === "theorem"
+    || block.type === "comment";
 }
 
 function blockSeparator(previous: Block, next: Block, mode: RenderBlockMode): string {
+  if (previous.type === "comment" || next.type === "comment") return "\n\n";
   if (mode !== "top-level") return "\n";
   return isStructuralBlock(previous) || isStructuralBlock(next) ? "\n\n" : "\n";
 }

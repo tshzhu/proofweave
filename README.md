@@ -63,11 +63,10 @@ After `proofweave proof.md` with the default options:
 \section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
-%
+
 % This Markdown note is kept as LaTeX comments.
 % ## This heading stays commented out
 % \[x*y\]
-%
 
 \begin{lemma}\label{lem:uniform-noise}
 	For every $x \in \mathcal{X}$,
@@ -108,9 +107,10 @@ inside statements, creates canonical labels, and removes the proof-final
 `\square` because LaTeX's `proof` environment supplies the QED symbol.
 
 HTML-style Markdown comments `<!-- ... -->` are converted to safe, line-by-line
-LaTeX comments. A multi-line comment becomes one `%` line per source line, so
-headings, lists, formulas, and other Markdown-looking text inside the comment
-are not parsed or emitted as active LaTeX structures.
+LaTeX comments. A multi-line comment becomes one `%` line per content line; the
+opening and closing marker lines are not content and are omitted. One blank line
+is kept before and after the comment, while headings, lists, formulas, and other
+Markdown-looking text inside it remain inactive.
 
 <a name="cli"></a>
 
