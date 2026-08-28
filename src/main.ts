@@ -16,13 +16,14 @@ import {
   type ConverterOptions,
 } from './options.ts'
 import {
-  convertMarkdown,
+  renderLatex,
   type ConversionResult,
   type Diagnostic,
   type DisplayMathStyle,
   type InlineMathStyle,
   type SectionNumbering,
 } from './renderer.ts'
+import { parseMarkdown, type DocumentAst } from './parser.ts'
 
 type EditorView = 'markdown' | 'latex'
 
@@ -59,6 +60,8 @@ let view: EditorView = 'markdown'
 let source = EXAMPLE_MARKDOWN
 let options: ConverterOptions = cloneConverterOptions(DEFAULT_CONVERTER_OPTIONS)
 let latestResult: ConversionResult = { latex: '', diagnostics: [] }
+let parsedSource = ''
+let parsedAst: DocumentAst | undefined
 let copyResetTimer: number | undefined
 let dragDepth = 0
 let pendingEditorFrame: number | undefined
@@ -257,7 +260,11 @@ function renderEditor(): void {
 
 function convert(): void {
   try {
-    latestResult = convertMarkdown(source, options)
+    if (parsedAst === undefined || parsedSource !== source) {
+      parsedAst = parseMarkdown(source)
+      parsedSource = source
+    }
+    latestResult = renderLatex(parsedAst, options)
   } catch (error) {
     latestResult = {
       latex: '',

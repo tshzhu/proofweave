@@ -183,7 +183,8 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
 
 test('keeps the requested interactions wired to the new interface', () => {
   for (const behavior of [
-    'convertMarkdown',
+    'renderLatex',
+    'parseMarkdown',
     'updateLineNumbers',
     'setView',
     'navigator.clipboard.writeText',

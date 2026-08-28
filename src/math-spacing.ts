@@ -297,7 +297,50 @@ const RECURSIVE_GROUP_COMMANDS = new Set([
 ])
 
 function commandAt(value: string, index: number): string {
-  return /^\\(?:[A-Za-z@]+\*?|.)/.exec(value.slice(index))?.[0] ?? '\\'
+  let end = index + 1
+  if (/[A-Za-z@]/.test(value[end] ?? '')) {
+    end += 1
+    while (end < value.length && /[A-Za-z@]/.test(value[end] ?? '')) end += 1
+    if (value[end] === '*') end += 1
+  } else if (end < value.length) {
+    end += 1
+  }
+  return value.slice(index, end)
+}
+
+function numberEnd(value: string, start: number): number | undefined {
+  let end = start
+  if (value[end] === '.') {
+    if (!/[0-9]/.test(value[end + 1] ?? '')) return undefined
+    end += 1
+    while (/[0-9]/.test(value[end] ?? '')) end += 1
+  } else {
+    if (!/[0-9]/.test(value[end] ?? '')) return undefined
+    while (/[0-9]/.test(value[end] ?? '')) end += 1
+    if (value[end] === '.') {
+      end += 1
+      while (/[0-9]/.test(value[end] ?? '')) end += 1
+    }
+  }
+
+  if (value[end] === 'e' || value[end] === 'E') {
+    let exponent = end + 1
+    if (value[exponent] === '+' || value[exponent] === '-') exponent += 1
+    const exponentStart = exponent
+    while (/[0-9]/.test(value[exponent] ?? '')) exponent += 1
+    if (exponent > exponentStart) end = exponent
+  }
+  return end
+}
+
+function identifierEnd(value: string, start: number): number {
+  let end = start
+  while (end < value.length) {
+    const codePoint = value.codePointAt(end)
+    if (codePoint === undefined || !/[\p{L}\p{N}]/u.test(String.fromCodePoint(codePoint))) break
+    end += codePoint > 0xffff ? 2 : 1
+  }
+  return end
 }
 
 function commandBase(command: string): string {
@@ -537,10 +580,12 @@ function tokenizeLine(value: string): MathToken[] {
       continue
     }
 
-    const relation = /^(?:<=|>=|!=|==|:=)/.exec(value.slice(index))?.[0]
+    const relation = value.startsWith('<=', index) || value.startsWith('>=', index)
+      || value.startsWith('!=', index) || value.startsWith('==', index)
+      || value.startsWith(':=', index)
     if (relation) {
-      tokens.push({ start, end: start + relation.length, value: relation, kind: 'relation' })
-      index += relation.length
+      tokens.push({ start, end: start + 2, value: value.slice(start, start + 2), kind: 'relation' })
+      index += 2
       continue
     }
 
@@ -634,17 +679,17 @@ function tokenizeLine(value: string): MathToken[] {
       continue
     }
 
-    const number = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/.exec(value.slice(index))?.[0]
-    if (number) {
-      tokens.push({ start, end: start + number.length, value: number, kind: 'atom' })
-      index += number.length
+    const number = numberEnd(value, index)
+    if (number !== undefined) {
+      tokens.push({ start, end: number, value: value.slice(start, number), kind: 'atom' })
+      index = number
       continue
     }
 
-    const identifier = /^[\p{L}\p{N}]+/u.exec(value.slice(index))?.[0]
-    if (identifier) {
-      tokens.push({ start, end: start + identifier.length, value: identifier, kind: 'atom' })
-      index += identifier.length
+    const identifier = identifierEnd(value, index)
+    if (identifier > index) {
+      tokens.push({ start, end: identifier, value: value.slice(start, identifier), kind: 'atom' })
+      index = identifier
       continue
     }
 
@@ -927,6 +972,7 @@ function formatMathCode(
   collapseSpaces: boolean,
   scriptNested = false,
 ): string {
+  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_]/.test(value)) return value
   const match = /^([ \t]*)(.*?)([ \t]*)$/.exec(value)
   const leading = match?.[1] ?? ''
   const core = match?.[2] ?? value

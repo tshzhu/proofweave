@@ -324,6 +324,7 @@ npm run dev
 npm test
 npm run check
 npm run build
+npm run benchmark -- path/to/blueprint.md
 npm run preview -- --port 4173
 ```
 
@@ -332,6 +333,8 @@ npm run preview -- --port 4173
 - `npm run check` performs TypeScript type checking.
 - `npm run build` creates the website in `dist/` and the CLI bundle in
   `dist-cli/`.
+- `npm run benchmark -- path/to/blueprint.md` reports warm conversion latency,
+  input/output sizes, and diagnostics without changing the source file.
 - `npm run preview -- --port 4173` serves the production website locally.
 
 ## License

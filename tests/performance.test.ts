@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import { convertMarkdown } from '../src/renderer.ts'
@@ -10,7 +10,9 @@ const fixtures = [
   '/scratch1/workspace/proof-from-rethlas/tp_adascale/.rethlas/state/results/tp_adascale/problem/blueprint_verified.md',
 ]
 
-test('keeps repeated large-fixture conversion deterministic and structurally intact', () => {
+test('keeps repeated large-fixture conversion deterministic and structurally intact', {
+  skip: fixtures.some((path) => !existsSync(path))
+}, () => {
   for (const path of fixtures) {
     const input = readFileSync(path, 'utf8')
     const first = convertMarkdown(input)

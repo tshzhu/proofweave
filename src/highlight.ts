@@ -1,6 +1,7 @@
 export type HighlightLanguage = 'markdown' | 'latex'
 
 function escapeHtml(value: string): string {
+  if (!/[&<>"']/.test(value)) return value
   return value.replace(/[&<>"']/g, (character) => {
     switch (character) {
       case '&': return '&amp;'
@@ -38,20 +39,12 @@ function latexCommandAt(value: string, index: number): string | undefined {
   return /^\\(?:[A-Za-z@]+\*?|.)/.exec(value.slice(index))?.[0]
 }
 
-function isLatexSpecial(value: string, index: number, allowComment: boolean): boolean {
-  const character = value[index]
-  return character === '\\'
-    || character === '$'
-    || character === '{'
-    || character === '}'
-    || character === '['
-    || character === ']'
-    || /[0-9]/.test(character ?? '')
-    || (allowComment && character === '%' && !isEscaped(value, index))
-}
+const LATEX_SPECIAL = '\\${}[]0123456789'
+const LATEX_SPECIAL_WITH_COMMENT = `${LATEX_SPECIAL}%`
 
 function highlightLatexFragment(value: string, allowComment: boolean): string {
   let output = ''
+  const special = allowComment ? LATEX_SPECIAL_WITH_COMMENT : LATEX_SPECIAL
 
   for (let index = 0; index < value.length;) {
     const character = value[index]
@@ -104,7 +97,7 @@ function highlightLatexFragment(value: string, allowComment: boolean): string {
     }
 
     let end = index + 1
-    while (end < value.length && !isLatexSpecial(value, end, allowComment)) end += 1
+    while (end < value.length && !special.includes(value[end] ?? '')) end += 1
     output += escapeHtml(value.slice(index, end))
     index = end
   }
