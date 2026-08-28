@@ -38,6 +38,9 @@ const highlightOutput = requireElement<HTMLElement>('#highlight-code')
 const lineNumbers = requireElement<HTMLElement>('#line-numbers')
 const dropOverlay = requireElement<HTMLElement>('#drop-overlay')
 const themeToggle = requireElement<HTMLButtonElement>('#theme-toggle')
+const editorZoomOut = requireElement<HTMLButtonElement>('#editor-zoom-out')
+const editorZoomIn = requireElement<HTMLButtonElement>('#editor-zoom-in')
+const editorZoomValue = requireElement<HTMLOutputElement>('#editor-zoom-value')
 const editorCopy = requireElement<HTMLButtonElement>('#editor-copy')
 const optionsForm = requireElement<HTMLFormElement>('#options-form')
 const loadExample = requireElement<HTMLButtonElement>('#load-example')
@@ -59,6 +62,12 @@ let copyResetTimer: number | undefined
 let dragDepth = 0
 type Theme = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'proofweave-theme'
+const EDITOR_ZOOM_STORAGE_KEY = 'proofweave-editor-zoom'
+const DEFAULT_EDITOR_ZOOM = 100
+const MIN_EDITOR_ZOOM = 80
+const MAX_EDITOR_ZOOM = 160
+const EDITOR_ZOOM_STEP = 10
+let editorZoomPercent = DEFAULT_EDITOR_ZOOM
 
 function readStoredTheme(): Theme {
   try {
@@ -91,6 +100,39 @@ function applyTheme(theme: Theme, persist = true): void {
 
 function currentTheme(): Theme {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'
+}
+
+function normalizeEditorZoom(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_EDITOR_ZOOM
+  const stepped = Math.round(value / EDITOR_ZOOM_STEP) * EDITOR_ZOOM_STEP
+  return Math.min(MAX_EDITOR_ZOOM, Math.max(MIN_EDITOR_ZOOM, stepped))
+}
+
+function readStoredEditorZoom(): number {
+  try {
+    const stored = localStorage.getItem(EDITOR_ZOOM_STORAGE_KEY)
+    return stored === null ? DEFAULT_EDITOR_ZOOM : normalizeEditorZoom(Number(stored))
+  } catch {
+    return DEFAULT_EDITOR_ZOOM
+  }
+}
+
+function applyEditorZoom(value: number, persist = true): void {
+  editorZoomPercent = normalizeEditorZoom(value)
+  document.documentElement.style.setProperty('--editor-font-scale', String(editorZoomPercent / 100))
+  editorZoomValue.value = `${editorZoomPercent}%`
+  editorZoomValue.textContent = `${editorZoomPercent}%`
+  editorZoomValue.setAttribute('aria-valuenow', String(editorZoomPercent))
+  editorZoomOut.disabled = editorZoomPercent === MIN_EDITOR_ZOOM
+  editorZoomIn.disabled = editorZoomPercent === MAX_EDITOR_ZOOM
+  syncEditorScroll()
+  if (persist) {
+    try {
+      localStorage.setItem(EDITOR_ZOOM_STORAGE_KEY, String(editorZoomPercent))
+    } catch {
+      // Keep zoom usable when browser storage is unavailable.
+    }
+  }
 }
 
 function currentText(): string {
@@ -430,6 +472,14 @@ themeToggle.addEventListener('click', () => {
   applyTheme(current === 'light' ? 'dark' : 'light')
 })
 
+editorZoomOut.addEventListener('click', () => {
+  applyEditorZoom(editorZoomPercent - EDITOR_ZOOM_STEP)
+})
+
+editorZoomIn.addEventListener('click', () => {
+  applyEditorZoom(editorZoomPercent + EDITOR_ZOOM_STEP)
+})
+
 loadExample.addEventListener('click', () => {
   source = EXAMPLE_MARKDOWN
   clearFileMessage()
@@ -465,6 +515,7 @@ downloadOutput.addEventListener('click', () => {
 })
 
 applyTheme(readStoredTheme(), false)
+applyEditorZoom(readStoredEditorZoom(), false)
 editor.value = source
 updateMathSpacingControls()
 convert()

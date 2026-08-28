@@ -33,12 +33,40 @@ test('uses the BibTeX Tidy editor and fixed-sidebar structure', () => {
   assert.doesNotMatch(html, /topbar|class="panel"|site-footer|diagnostics-panel/)
 })
 
-test('uses the ProofWeave brand and publishing-focused description', () => {
+test('uses the ProofWeave brand and concise conversion description', () => {
   assert.match(html, /<title>ProofWeave — Convert Markdown proofs into clean LaTeX<\/title>/)
   assert.match(html, /<h1>ProofWeave<\/h1>/)
-  assert.match(html, /AI-generated Markdown mathematical proofs/)
-  assert.match(html, /publishing, reading, and continued editing/)
+  assert.match(html, /Convert Markdown mathematical proofs into clean, well-formatted LaTeX\./)
+  assert.doesNotMatch(html, /AI-generated|never uploaded|publishing, reading, and continued editing/)
   assert.doesNotMatch(html, /Markdown to LaTeX/)
+})
+
+test('provides bounded editor text zoom beside the copy action', () => {
+  assert.match(html, /class="editor-controls"[\s\S]*id="editor-zoom-out"[\s\S]*id="editor-zoom-value"[\s\S]*id="editor-zoom-in"[\s\S]*id="editor-copy"/)
+  assert.match(html, /id="editor-zoom-value"[\s\S]*aria-valuemin="80"[\s\S]*aria-valuemax="160"[\s\S]*aria-valuenow="100"/)
+  assert.match(css, /--editor-font-size:\s*15px/)
+  assert.match(css, /--editor-font-scale:\s*1/)
+  assert.match(css, /--mono-normal:\s*400 calc\(var\(--editor-font-size\) \* var\(--editor-font-scale\)\)/)
+  assert.match(main, /EDITOR_ZOOM_STORAGE_KEY = 'proofweave-editor-zoom'/)
+  assert.match(main, /DEFAULT_EDITOR_ZOOM = 100/)
+  assert.match(main, /MIN_EDITOR_ZOOM = 80/)
+  assert.match(main, /MAX_EDITOR_ZOOM = 160/)
+  assert.match(main, /EDITOR_ZOOM_STEP = 10/)
+  assert.match(main, /document\.documentElement\.style\.setProperty\('--editor-font-scale'/)
+  assert.match(main, /editorZoomOut\.disabled = editorZoomPercent === MIN_EDITOR_ZOOM/)
+  assert.match(main, /editorZoomIn\.disabled = editorZoomPercent === MAX_EDITOR_ZOOM/)
+  assert.match(main, /localStorage\.setItem\(EDITOR_ZOOM_STORAGE_KEY, String\(editorZoomPercent\)\)/)
+  assert.match(main, /applyEditorZoom\(readStoredEditorZoom\(\), false\)/)
+  assert.match(main, /function applyEditorZoom[\s\S]*syncEditorScroll\(\)/)
+})
+
+test('aligns the theme toggle with the heading and includes a GitHub action', () => {
+  assert.match(html, /<div class="intro-heading">[\s\S]*<h1>ProofWeave<\/h1>[\s\S]*id="theme-toggle"[\s\S]*<\/div>/)
+  assert.doesNotMatch(html, /toolbar-topline/)
+  assert.match(css, /\.intro-heading\s*\{[\s\S]*justify-content:\s*space-between/)
+  assert.match(html, /id="load-example"[\s\S]*id="clear-input"[\s\S]*href="https:\/\/github\.com\/tshzhu\/proofweave">GitHub<\/a>/)
+  assert.match(css, /\.btn\s*\{[\s\S]*text-decoration:\s*none/)
+  assert.match(css, /a\.btn:focus-visible/)
 })
 
 test('configures complete relative favicon and web app icon metadata', () => {

@@ -1,7 +1,7 @@
 # ProofWeave
 
-ProofWeave turns AI-generated Markdown mathematical proofs into clean LaTeX
-proof content that is easier to publish, read, review, and continue editing.
+ProofWeave converts Markdown mathematical proofs into clean, well-formatted
+LaTeX.
 
 Website: <https://tshzhu.github.io/proofweave/>
 
@@ -99,9 +99,12 @@ indentation stays readable.
 The interface follows BibTeX Tidy's editor-and-sidebar workflow. Edit Markdown
 in the full-height left pane, choose conversion options in the right sidebar,
 then switch to the generated LaTeX view with **View LaTeX**. The editor's Copy
-button copies whichever view is currently visible. Use the sun/moon button at
-the top-left of the sidebar to switch between the dark editor theme and the
-red-and-white light theme; the preference is kept locally in the browser.
+button copies whichever view is currently visible. Use the minus and plus
+buttons beside Copy to adjust editor text from 80% to 160%; the default is 100%
+with a 15px base size. Use the sun/moon button beside the ProofWeave heading to
+switch between the dark editor theme and the red-and-white light theme. Both
+preferences are kept locally in the browser. The GitHub button opens the source
+repository.
 
 Both editor views use syntax highlighting for their current language. While in
 the Markdown view, you can also drop one `.md` file onto the editor to replace

@@ -2,7 +2,7 @@
   "name": "proofweave",
   "version": "0.1.0",
   "private": true,
-  "description": "Convert AI-generated Markdown mathematical proofs into clean, editable LaTeX proof content.",
+  "description": "Convert Markdown mathematical proofs into clean, well-formatted LaTeX.",
   "homepage": "https://tshzhu.github.io/proofweave/",
   "repository": {
     "type": "git",

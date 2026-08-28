@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#ffffff" />
     <meta
       name="description"
-      content="Turn AI-generated Markdown mathematical proofs into clean LaTeX proofs ready for publishing, reading, and continued editing."
+      content="Convert Markdown mathematical proofs into clean, well-formatted LaTeX."
     />
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png" />
@@ -43,44 +43,74 @@
         <strong>Drop Markdown file</strong>
         <span>Import one .md file and view the generated LaTeX</span>
       </div>
-      <button id="editor-copy" class="editor-copy" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M8 7V4h12v13h-3v3H4V7h4Zm2 0h7v8h1V6h-8v1Zm5 2H6v9h9V9Z" />
-        </svg>
-        <span>Copy</span>
-      </button>
+      <div class="editor-controls" aria-label="Editor display controls">
+        <div
+          id="editor-zoom"
+          class="editor-zoom"
+          role="group"
+          aria-label="Editor text size"
+        >
+          <button
+            id="editor-zoom-out"
+            class="editor-control editor-zoom-button"
+            type="button"
+            aria-label="Decrease editor text size"
+            title="Decrease editor text size"
+          >−</button>
+          <output
+            id="editor-zoom-value"
+            role="spinbutton"
+            aria-label="Editor text size percentage"
+            aria-valuemin="80"
+            aria-valuemax="160"
+            aria-valuenow="100"
+            aria-readonly="true"
+            aria-live="polite"
+          >100%</output>
+          <button
+            id="editor-zoom-in"
+            class="editor-control editor-zoom-button"
+            type="button"
+            aria-label="Increase editor text size"
+            title="Increase editor text size"
+          >+</button>
+        </div>
+        <button id="editor-copy" class="editor-control editor-copy" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 7V4h12v13h-3v3H4V7h4Zm2 0h7v8h1V6h-8v1Zm5 2H6v9h9V9Z" />
+          </svg>
+          <span>Copy</span>
+        </button>
+      </div>
     </main>
 
     <aside id="sidebar" aria-label="Conversion options">
       <form id="options-form">
-        <div class="toolbar-topline">
-          <button
-            id="theme-toggle"
-            class="theme-toggle"
-            type="button"
-            aria-label="Switch to dark mode"
-            aria-pressed="true"
-            title="Switch to dark mode"
-          >
-            <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 4.2a7.8 7.8 0 1 0 0 15.6 7.8 7.8 0 0 0 0-15.6Zm0 13.6a5.8 5.8 0 1 1 0-11.6 5.8 5.8 0 0 1 0 11.6ZM11 1h2v2.3h-2V1Zm0 19.7h2V23h-2v-2.3ZM1 11h2.3v2H1v-2Zm19.7 0H23v2h-2.3v-2ZM3.6 2.2 5.2 3.8 3.6 5.4 2.2 3.8l1.4-1.6Zm15.2 15.2 1.6 1.6-1.4 1.6-1.6-1.6 1.4-1.6ZM20.4 2.2l1.4 1.6-1.6 1.6-1.4-1.6 1.6-1.6ZM3.6 17.4 5.2 19l-1.6 1.6-1.4-1.6 1.4-1.6Z" />
-            </svg>
-            <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20.8 15.1A8.9 8.9 0 0 1 8.9 3.2 9.3 9.3 0 1 0 20.8 15.1Z" />
-            </svg>
-            <span class="sr-only">Switch color theme</span>
-          </button>
-        </div>
         <section class="intro">
-          <h1>ProofWeave</h1>
-          <p>
-            Refine AI-generated Markdown mathematical proofs into clean LaTeX
-            proof content ready for publishing, reading, and continued editing.
-            Everything stays in this browser and is never uploaded.
-          </p>
+          <div class="intro-heading">
+            <h1>ProofWeave</h1>
+            <button
+              id="theme-toggle"
+              class="theme-toggle"
+              type="button"
+              aria-label="Switch to dark mode"
+              aria-pressed="true"
+              title="Switch to dark mode"
+            >
+              <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4.2a7.8 7.8 0 1 0 0 15.6 7.8 7.8 0 0 0 0-15.6Zm0 13.6a5.8 5.8 0 1 1 0-11.6 5.8 5.8 0 0 1 0 11.6ZM11 1h2v2.3h-2V1Zm0 19.7h2V23h-2v-2.3ZM1 11h2.3v2H1v-2Zm19.7 0H23v2h-2.3v-2ZM3.6 2.2 5.2 3.8 3.6 5.4 2.2 3.8l1.4-1.6Zm15.2 15.2 1.6 1.6-1.4 1.6-1.6-1.6 1.4-1.6ZM20.4 2.2l1.4 1.6-1.6 1.6-1.4-1.6 1.6-1.6ZM3.6 17.4 5.2 19l-1.6 1.6-1.4-1.6 1.4-1.6Z" />
+              </svg>
+              <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20.8 15.1A8.9 8.9 0 0 1 8.9 3.2 9.3 9.3 0 1 0 20.8 15.1Z" />
+              </svg>
+              <span class="sr-only">Switch color theme</span>
+            </button>
+          </div>
+          <p>Convert Markdown mathematical proofs into clean, well-formatted LaTeX.</p>
           <div class="intro-actions">
             <button id="load-example" class="btn" type="button">Load example</button>
             <button id="clear-input" class="btn" type="button">Clear</button>
+            <a class="btn" href="https://github.com/tshzhu/proofweave">GitHub</a>
           </div>
           <p id="editor-mode-status" class="status-line" aria-live="polite">
             Editing Markdown
