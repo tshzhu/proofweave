@@ -22,6 +22,11 @@ test('renders the built-in example with structural blank lines only', () => {
   assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
+%
+% This Markdown note is kept as LaTeX comments.
+% ## This heading stays commented out
+% \[x*y\]
+%
 
 \begin{lemma}\label{lem:uniform-noise}
 	For every $x \in \mathcal{X}$,
@@ -73,6 +78,75 @@ The estimate proves the claim. \square`)
 \begin{proof}
 	The estimate proves the claim.
 \end{proof}`)
+})
+
+test('converts Markdown comments line by line without parsing their contents', () => {
+  const result = convertMarkdown(`Before.
+<!--
+# not a heading
+\\[x*y\\]
+- not a list
+-->
+After.`)
+
+  assert.equal(result.diagnostics.length, 0)
+  assert.equal(result.latex, String.raw`Before.
+%
+% # not a heading
+% \[x*y\]
+% - not a list
+%
+After.`)
+  assert.doesNotMatch(result.latex, /\\section|\\item|\\begin\{equation\}/)
+})
+
+test('preserves ordinary text around same-line comments and warns on unclosed comments', () => {
+  const inline = convertMarkdown('Before <!-- hidden --> After')
+  assert.equal(inline.latex, String.raw`Before
+%  hidden
+After`)
+  assert.equal(inline.diagnostics.length, 0)
+
+  const unclosed = convertMarkdown(`<!--
+still hidden`)
+  assert.match(unclosed.latex, /^%\n% still hidden$/)
+  assert.ok(unclosed.diagnostics.some(({ code }) => code === 'unclosed-comment'))
+})
+
+test('keeps comments opaque while scanning theorem boundaries and nested lists', () => {
+  const result = convertMarkdown(`## lemma comment-scope
+
+### statement
+
+Claim.
+
+<!--
+### proof
+This is not a proof heading.
+- Nor is this an active list item.
+-->
+
+### proof
+
+The actual proof follows.
+
+- Visible item
+  <!--
+  ## not a section
+  \\[z=1\\]
+  -->`)
+
+  assert.equal(result.diagnostics.length, 0)
+  assert.match(result.latex, /\\begin\{lemma\}\\label\{lem:comment-scope\}/)
+  assert.match(result.latex, /\\begin\{proof\}\n\tThe actual proof follows\./)
+  assert.match(result.latex, /% This is not a proof heading/)
+  assert.match(result.latex, /% - Nor is this an active list item\./)
+  assert.doesNotMatch(result.latex, /\n\t### proof|\n\t- Nor is this an active list item/)
+  assert.match(result.latex, /\\item Visible item/)
+  assert.match(result.latex, /% ## not a section/)
+  assert.match(result.latex, /% \\\[z=1\\\]/)
+  assert.equal((result.latex.match(/\\begin\{proof\}/g) ?? []).length, 1)
+  assert.equal((result.latex.match(/\\section|\\subsection|\\subsubsection/g) ?? []).length, 0)
 })
 
 test('normalizes math-styled theorem references in inline and display math', () => {

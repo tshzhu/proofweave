@@ -3,6 +3,7 @@ import type {
   DisplayMathBlock,
   DocumentAst,
   HeadingBlock,
+  CommentBlock,
   ListBlock,
   ParagraphBlock,
   TheoremBlock,
@@ -226,6 +227,12 @@ function renderParagraph(block: ParagraphBlock, context: RenderContext, owner: s
   );
 }
 
+function renderComment(block: CommentBlock): string {
+  return block.lines
+    .map((line) => line.length ? `% ${line}` : "%")
+    .join("\n");
+}
+
 function renderMath(
   block: DisplayMathBlock,
   context: RenderContext,
@@ -315,6 +322,8 @@ function renderBlock(
       return renderHeading(block, context, owner);
     case "paragraph":
       return renderParagraph(block, context, owner);
+    case "comment":
+      return renderComment(block);
     case "display-math":
       return renderMath(block, context, scope);
     case "list":

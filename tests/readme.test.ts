@@ -26,6 +26,9 @@ test('keeps the README before/after example synchronized with the default render
   assert.match(actual.latex, /\\begin\{lemma\}\\label\{lem:uniform-noise\}/)
   assert.match(actual.latex, /\n\t\\begin\{equation\}/)
   assert.doesNotMatch(actual.latex, /\\square/)
+  assert.match(markedFence('input', 'markdown'), /<!--\nThis Markdown note is kept as LaTeX comments\.[\s\S]*?-->/)
+  assert.match(markedFence('output', 'latex'), /%\n% This Markdown note is kept as LaTeX comments\.[\s\S]*?%\n\n\\begin\{lemma\}/)
+  assert.doesNotMatch(markedFence('output', 'latex'), /<!--|-->/)
 })
 
 test('documents every public CLI flag and alias exposed by CLI help', () => {

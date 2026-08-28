@@ -19,6 +19,11 @@ export interface ParagraphBlock extends SourceBlock {
   text: string;
 }
 
+export interface CommentBlock extends SourceBlock {
+  type: "comment";
+  lines: string[];
+}
+
 export interface DisplayMathBlock extends SourceBlock {
   type: "display-math";
   body: string;
@@ -49,6 +54,7 @@ export interface TheoremBlock extends SourceBlock {
 export type Block =
   | HeadingBlock
   | ParagraphBlock
+  | CommentBlock
   | DisplayMathBlock
   | ListBlock
   | TheoremBlock;
@@ -221,6 +227,97 @@ function parseDisplayMath(
   };
 }
 
+function parseComment(
+  lines: SourceLine[],
+  start: number,
+  end: number,
+  diagnostics: Diagnostic[],
+  allowTheorems: boolean,
+  marker = lineAt(lines, start).text.indexOf("<!--"),
+): { blocks: Block[]; next: number } | undefined {
+  const startLine = lineAt(lines, start);
+  if (marker < 0) return undefined;
+
+  const commentLines: string[] = [];
+  let cursor = start;
+  const remainder = startLine.text.slice(marker + "<!--".length);
+  const close = remainder.indexOf("-->");
+  if (close >= 0) {
+    commentLines.push(remainder.slice(0, close));
+    const trailing = remainder.slice(close + "-->".length);
+    const blocks: Block[] = [];
+    const before = startLine.text.slice(0, marker);
+    if (before.trim()) {
+      blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
+    }
+    blocks.push({ type: "comment", line: startLine.number, lines: [remainder.slice(0, close)] });
+    if (trailing.trim()) {
+      blocks.push(...parseRange([{ text: trailing, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
+    }
+    return {
+      blocks,
+      next: start + 1,
+    };
+  }
+  commentLines.push(remainder);
+  cursor += 1;
+
+  while (cursor < end) {
+    const current = lineAt(lines, cursor).text;
+    const closeAt = current.indexOf("-->");
+    if (closeAt >= 0) {
+      commentLines.push(current.slice(0, closeAt));
+      const trailing = current.slice(closeAt + "-->".length);
+      const blocks: Block[] = [];
+      const before = startLine.text.slice(0, marker);
+      if (before.trim()) {
+        blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
+      }
+      blocks.push({ type: "comment", line: startLine.number, lines: commentLines });
+      if (trailing.trim()) {
+        blocks.push(...parseRange([{ text: trailing, number: lineAt(lines, cursor).number }], 0, 1, diagnostics, allowTheorems));
+      }
+      return {
+        blocks,
+        next: cursor + 1,
+      };
+    }
+    commentLines.push(current);
+    cursor += 1;
+  }
+
+  diagnostics.push({
+    severity: "warning",
+    code: "unclosed-comment",
+    message: "A Markdown comment opened with <!-- but has no closing --> marker.",
+    line: startLine.number,
+  });
+  const blocks: Block[] = [];
+  const before = startLine.text.slice(0, marker);
+  if (before.trim()) {
+    blocks.push(...parseRange([{ text: before, number: startLine.number }], 0, 1, diagnostics, allowTheorems));
+  }
+  blocks.push({ type: "comment", line: startLine.number, lines: commentLines });
+  return {
+    blocks,
+    next: end,
+  };
+}
+
+function commentEnd(
+  lines: SourceLine[],
+  start: number,
+  end: number,
+  marker: number,
+): number {
+  const first = lineAt(lines, start).text.slice(marker + "<!--".length);
+  if (first.includes("-->")) return start + 1;
+  for (let cursor = start + 1; cursor < end; cursor += 1) {
+    if (lineAt(lines, cursor).text.includes("-->")) return cursor + 1;
+  }
+  return end;
+}
+
 function parseList(
   lines: SourceLine[],
   start: number,
@@ -293,6 +390,11 @@ function parseTheorem(
   let proofMarker: { index: number; name: "proof" } | undefined;
   let cursor = start + 1;
   while (cursor < end) {
+    const commentMarker = lineAt(lines, cursor).text.indexOf("<!--");
+    if (commentMarker >= 0) {
+      cursor = commentEnd(lines, cursor, end, commentMarker);
+      continue;
+    }
     const candidate = heading(lineAt(lines, cursor).text);
     if (!candidate) {
       cursor += 1;
@@ -407,6 +509,7 @@ function parseTheorem(
 
 function isBlockStart(lines: SourceLine[], index: number, allowTheorems: boolean): boolean {
   const value = lineAt(lines, index).text;
+  if (value.includes("<!--")) return true;
   const matchedHeading = heading(value);
   if (matchedHeading) return true;
   if (listMarker(value)) return true;
@@ -432,6 +535,16 @@ function parseRange(
       continue;
     }
 
+    const commentMarker = currentLine.text.indexOf("<!--");
+    const parsedComment = commentMarker >= 0
+      ? parseComment(lines, cursor, end, diagnostics, allowTheorems, commentMarker)
+      : undefined;
+    if (parsedComment) {
+      blocks.push(...parsedComment.blocks);
+      cursor = parsedComment.next;
+      continue;
+    }
+
     const matchedHeading = heading(currentLine.text);
     const matchedTheorem = matchedHeading ? theoremHeading(matchedHeading) : undefined;
     if (allowTheorems && matchedTheorem) {
@@ -451,6 +564,7 @@ function parseRange(
       cursor += 1;
       continue;
     }
+
 
     const parsedDisplay = parseDisplayMath(lines, cursor, end, diagnostics);
     if (parsedDisplay) {

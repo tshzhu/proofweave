@@ -18,6 +18,12 @@ Before:
 
 This example demonstrates headings, theorem environments, lists, and math.
 
+<!--
+This Markdown note is kept as LaTeX comments.
+## This heading stays commented out
+\[x*y\]
+-->
+
 ## lemma uniform-noise
 
 ### statement
@@ -57,6 +63,11 @@ After `proofweave proof.md` with the default options:
 \section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
+%
+% This Markdown note is kept as LaTeX comments.
+% ## This heading stays commented out
+% \[x*y\]
+%
 
 \begin{lemma}\label{lem:uniform-noise}
 	For every $x \in \mathcal{X}$,
@@ -95,6 +106,11 @@ above consists of tabs because `--indent=tab` is the default. The default
 formatter also normalizes math spacing, braces `\mathcal{X}`, uses `equation`
 inside statements, creates canonical labels, and removes the proof-final
 `\square` because LaTeX's `proof` environment supplies the QED symbol.
+
+HTML-style Markdown comments `<!-- ... -->` are converted to safe, line-by-line
+LaTeX comments. A multi-line comment becomes one `%` line per source line, so
+headings, lists, formulas, and other Markdown-looking text inside the comment
+are not parsed or emitted as active LaTeX structures.
 
 <a name="cli"></a>
 

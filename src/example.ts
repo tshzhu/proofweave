@@ -3,6 +3,12 @@ export const EXAMPLE_MARKDOWN = String.raw`# Part I -- A small estimate
 
 This example demonstrates headings, theorem environments, lists, and math.
 
+<!--
+This Markdown note is kept as LaTeX comments.
+## This heading stays commented out
+\[x*y\]
+-->
+
 ## lemma uniform-noise
 
 ### statement
