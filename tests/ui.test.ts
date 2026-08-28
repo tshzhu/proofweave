@@ -7,6 +7,7 @@ const css = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
 const main = readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')
 const fileImport = readFileSync(new URL('../src/file-import.ts', import.meta.url), 'utf8')
 const optionsSource = readFileSync(new URL('../src/options.ts', import.meta.url), 'utf8')
+const manifest = JSON.parse(readFileSync(new URL('../public/icons/site.webmanifest', import.meta.url), 'utf8'))
 
 function radioValues(name: string): string[] {
   const pattern = new RegExp(`<input[^>]+name="${name}"[^>]+value="([^"]+)"[^>]*>`, 'g')
@@ -38,6 +39,33 @@ test('uses the ProofWeave brand and publishing-focused description', () => {
   assert.match(html, /AI-generated Markdown mathematical proofs/)
   assert.match(html, /publishing, reading, and continued editing/)
   assert.doesNotMatch(html, /Markdown to LaTeX/)
+})
+
+test('configures complete relative favicon and web app icon metadata', () => {
+  assert.match(html, /rel="apple-touch-icon" sizes="180x180" href="\.\/icons\/apple-touch-icon\.png"/)
+  assert.match(html, /rel="icon" type="image\/png" sizes="32x32" href="\.\/icons\/favicon-32x32\.png"/)
+  assert.match(html, /rel="icon" type="image\/png" sizes="16x16" href="\.\/icons\/favicon-16x16\.png"/)
+  assert.match(html, /rel="icon" href="\.\/icons\/favicon\.ico" sizes="any"/)
+  assert.match(html, /rel="manifest" href="\.\/icons\/site\.webmanifest"/)
+  assert.equal(manifest.name, 'ProofWeave')
+  assert.equal(manifest.short_name, 'ProofWeave')
+  assert.equal(manifest.start_url, './')
+  assert.equal(manifest.scope, './')
+  assert.deepEqual(manifest.icons, [
+    { src: './android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+    { src: './android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+  ])
+  for (const name of [
+    'android-chrome-192x192.png',
+    'android-chrome-512x512.png',
+    'apple-touch-icon.png',
+    'favicon-16x16.png',
+    'favicon-32x32.png',
+    'favicon.ico',
+    'site.webmanifest',
+  ]) {
+    assert.ok(statSync(new URL(`../public/icons/${name}`, import.meta.url)).size > 100, `${name} is missing or empty`)
+  }
 })
 
 test('defaults to the light theme while preserving a stored dark choice', () => {
