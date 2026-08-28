@@ -8,6 +8,10 @@ export interface MathSpacingOptions {
   compactParentheses: boolean
   pairedBars: boolean
   namedFunctions: boolean
+}
+
+export interface MathCleanupOptions {
+  normalizeLabelPrefixes: boolean
   fontCommandBraces: boolean
   collapseSpaces: boolean
 }
@@ -20,6 +24,10 @@ export const DEFAULT_MATH_SPACING_OPTIONS: Readonly<MathSpacingOptions> = {
   compactParentheses: true,
   pairedBars: true,
   namedFunctions: true,
+}
+
+export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
+  normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
 }
@@ -380,7 +388,11 @@ function braceFontCommandArguments(value: string): string {
   return result
 }
 
-function formatNestedMathGroups(value: string, options: MathSpacingOptions): string {
+function formatNestedMathGroups(
+  value: string,
+  options: MathSpacingOptions,
+  collapseSpaces: boolean,
+): string {
   let result = ''
   for (let index = 0; index < value.length;) {
     if (value[index] === '\\') {
@@ -396,7 +408,7 @@ function formatNestedMathGroups(value: string, options: MathSpacingOptions): str
           const inner = value.slice(index + 1, end - 1)
           const shouldFormat = !PRESERVE_GROUP_COMMANDS.has(base) && /\\[A-Za-z]/.test(inner)
           result += shouldFormat
-            ? `{${formatMathCode(inner, options)}}`
+            ? `{${formatMathCode(inner, options, collapseSpaces)}}`
             : value.slice(index, end)
           index = end
           continue
@@ -407,7 +419,7 @@ function formatNestedMathGroups(value: string, options: MathSpacingOptions): str
         const end = groupEnd(value, index)
         if (end === undefined) break
         const inner = value.slice(index + 1, end - 1)
-        result += `{${formatMathCode(inner, options)}}`
+        result += `{${formatMathCode(inner, options, collapseSpaces)}}`
         index = end
       }
       continue
@@ -422,7 +434,7 @@ function formatNestedMathGroups(value: string, options: MathSpacingOptions): str
         if (end !== undefined) {
           const inner = value.slice(index + 1, end - 1)
           const scriptValue = /\\[A-Za-z]/.test(inner)
-            ? formatMathCode(inner, { ...options, punctuation: false })
+            ? formatMathCode(inner, { ...options, punctuation: false }, collapseSpaces)
             : inner
           result += `{${scriptValue}}`
           index = end
@@ -435,7 +447,7 @@ function formatNestedMathGroups(value: string, options: MathSpacingOptions): str
       const end = groupEnd(value, index)
       if (end !== undefined) {
         const inner = value.slice(index + 1, end - 1)
-        result += `{${formatMathCode(inner, options)}}`
+        result += `{${formatMathCode(inner, options, collapseSpaces)}}`
         index = end
         continue
       }
@@ -732,8 +744,8 @@ function isCompactSetDelimiter(token: MathToken): boolean {
   return /^\\[{}|]$/.test(token.value)
 }
 
-function collapsedGap(value: string, options: MathSpacingOptions): string {
-  return options.collapseSpaces ? value.replace(/[ \t]{2,}/g, ' ') : value
+function collapsedGap(value: string, collapseSpaces: boolean): string {
+  return collapseSpaces ? value.replace(/[ \t]{2,}/g, ' ') : value
 }
 
 function implicitProductGap(left: MathToken, right: MathToken): boolean {
@@ -752,6 +764,7 @@ function desiredGap(
   boundary: number,
   original: string,
   options: MathSpacingOptions,
+  collapseSpaces: boolean,
   binaries: Set<number>,
   bars: ReturnType<typeof pairedBarIndices>,
   scriptNested = false,
@@ -760,7 +773,7 @@ function desiredGap(
   const right = tokens[boundary + 1]!
 
   if (options.punctuation && left.kind === 'punctuation' && right.kind === 'spacing') return ' '
-  if (left.kind === 'spacing' || right.kind === 'spacing') return collapsedGap(original, options)
+  if (left.kind === 'spacing' || right.kind === 'spacing') return collapsedGap(original, collapseSpaces)
   if (options.punctuation && !scriptNested && (left.value === ':' || right.value === ':')) return ' '
 
   if (options.compactParentheses) {
@@ -820,7 +833,7 @@ function desiredGap(
 
   if (original.length === 0 && implicitProductGap(left, right)) return ' '
 
-  return collapsedGap(original, options)
+  return collapsedGap(original, collapseSpaces)
 }
 
 function commentStart(value: string): number {
@@ -839,7 +852,7 @@ function isReferenceLabel(value: string): boolean {
   return /^\s*[^{}\s\\]+:[^{}\s\\]+\s*$/.test(value)
 }
 
-function normalizeReferenceLine(value: string): string {
+function normalizeReferenceLine(value: string, normalizeLabelPrefixes: boolean): string {
   const comment = commentStart(value)
   const code = comment < 0 ? value : value.slice(0, comment)
   const suffix = comment < 0 ? '' : value.slice(comment)
@@ -863,7 +876,8 @@ function normalizeReferenceLine(value: string): string {
       if (end !== undefined) {
         const content = code.slice(groupStart + 1, end - 1)
         if (isReferenceLabel(content)) {
-          result += `\\ref{${normalizeLabelPrefix(content)}}`
+          const label = normalizeLabelPrefixes ? normalizeLabelPrefix(content) : content.trim()
+          result += `\\ref{${label}}`
         } else {
           result += code.slice(index, end)
         }
@@ -876,7 +890,8 @@ function normalizeReferenceLine(value: string): string {
       const end = groupEnd(code, groupStart)
       if (end !== undefined) {
         const content = code.slice(groupStart + 1, end - 1)
-        result += `${code.slice(index, groupStart)}{${normalizeLabelPrefix(content)}}`
+        const label = normalizeLabelPrefixes ? normalizeLabelPrefix(content) : content
+        result += `${code.slice(index, groupStart)}{${label}}`
         index = end
         continue
       }
@@ -900,16 +915,21 @@ function normalizeReferenceLine(value: string): string {
   return result + suffix
 }
 
-function normalizeMathReferences(value: string): string {
-  return value.split('\n').map(normalizeReferenceLine).join('\n')
+function normalizeMathReferences(value: string, normalizeLabelPrefixes: boolean): string {
+  return value.split('\n').map((line) => normalizeReferenceLine(line, normalizeLabelPrefixes)).join('\n')
 }
 
-function formatMathCode(value: string, options: MathSpacingOptions, scriptNested = false): string {
+function formatMathCode(
+  value: string,
+  options: MathSpacingOptions,
+  collapseSpaces: boolean,
+  scriptNested = false,
+): string {
   const match = /^([ \t]*)(.*?)([ \t]*)$/.exec(value)
   const leading = match?.[1] ?? ''
   const core = match?.[2] ?? value
   const trailing = match?.[3] ?? ''
-  const normalizedCore = formatNestedMathGroups(core, options)
+  const normalizedCore = formatNestedMathGroups(core, options, collapseSpaces)
   const tokens = tokenizeLine(normalizedCore)
   if (tokens.length < 2) return leading + normalizedCore + trailing
 
@@ -921,7 +941,7 @@ function formatMathCode(value: string, options: MathSpacingOptions, scriptNested
     const left = tokens[index]!
     const right = tokens[index + 1]!
     const original = normalizedCore.slice(left.end, right.start)
-    result += desiredGap(tokens, index, original, options, binaries, bars, scriptNested)
+    result += desiredGap(tokens, index, original, options, collapseSpaces, binaries, bars, scriptNested)
     result += right.value
   }
 
@@ -929,21 +949,42 @@ function formatMathCode(value: string, options: MathSpacingOptions, scriptNested
   return leading + result + trailing
 }
 
-function formatLine(value: string, options: MathSpacingOptions): string {
+function formatLine(value: string, options: MathSpacingOptions, collapseSpaces: boolean): string {
   const comment = commentStart(value)
   const code = comment < 0 ? value : value.slice(0, comment)
-  const formattedCode = options.fontCommandBraces
-    ? braceFontCommandArguments(code)
-    : code
-  if (comment < 0) return formatMathCode(formattedCode, options)
-  return formatMathCode(formattedCode, options) + value.slice(comment)
+  if (comment < 0) return formatMathCode(code, options, collapseSpaces)
+  return formatMathCode(code, options, collapseSpaces) + value.slice(comment)
+}
+
+function collapseMathSpacesOnly(value: string): string {
+  const comment = commentStart(value)
+  const code = comment < 0 ? value : value.slice(0, comment)
+  const suffix = comment < 0 ? '' : value.slice(comment)
+  const tokens = tokenizeLine(code)
+  if (tokens.length < 2) return value
+  let result = code.slice(0, tokens[0]!.end)
+  for (let index = 0; index < tokens.length - 1; index += 1) {
+    const left = tokens[index]!
+    const right = tokens[index + 1]!
+    result += code.slice(left.end, right.start).replace(/[ \t]{2,}/g, ' ')
+    result += right.value
+  }
+  result += code.slice(tokens[tokens.length - 1]!.end)
+  return result + suffix
 }
 
 export function formatMathSpacing(
   value: string,
   options: MathSpacingOptions = DEFAULT_MATH_SPACING_OPTIONS,
+  cleanup: MathCleanupOptions = DEFAULT_MATH_CLEANUP_OPTIONS,
 ): string {
-  const normalized = normalizeMathReferences(value)
-  if (!options.enabled || normalized.length === 0) return normalized
-  return normalized.split('\n').map((line) => formatLine(line, options)).join('\n')
+  const referenced = normalizeMathReferences(value, cleanup.normalizeLabelPrefixes)
+  const normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
+  if (normalized.length === 0) return normalized
+  if (!options.enabled) {
+    return cleanup.collapseSpaces
+      ? normalized.split('\n').map(collapseMathSpacesOnly).join('\n')
+      : normalized
+  }
+  return normalized.split('\n').map((line) => formatLine(line, options, cleanup.collapseSpaces)).join('\n')
 }

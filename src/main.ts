@@ -10,6 +10,7 @@ import {
   cliCommand,
   cloneConverterOptions,
   DEFAULT_CONVERTER_OPTIONS,
+  isCleanupRule,
   isMathSpacingRule,
   optionsToCLIArgs,
   type ConverterOptions,
@@ -423,8 +424,12 @@ optionsForm.addEventListener('change', (event) => {
       return
     }
 
-    if (target.name === 'removeBoxed') {
-      options = { ...options, removeBoxed: target.checked }
+    const cleanupRule = target.dataset.cleanupRule
+    if (isCleanupRule(cleanupRule)) {
+      options = {
+        ...options,
+        cleanup: { ...options.cleanup, [cleanupRule]: target.checked },
+      }
       convert()
       return
     }

@@ -4,7 +4,7 @@ import test from 'node:test'
 
 import { EXAMPLE_MARKDOWN } from '../src/example.ts'
 import { convertMarkdown, DEFAULT_RENDER_OPTIONS } from '../src/renderer.ts'
-import { DEFAULT_MATH_SPACING_OPTIONS, formatMathSpacing } from '../src/math-spacing.ts'
+import { DEFAULT_MATH_CLEANUP_OPTIONS, DEFAULT_MATH_SPACING_OPTIONS, formatMathSpacing } from '../src/math-spacing.ts'
 
 test('uses the requested formatter defaults', () => {
   assert.deepEqual(DEFAULT_RENDER_OPTIONS, {
@@ -13,8 +13,8 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    removeBoxed: true,
-    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
 
@@ -142,6 +142,31 @@ test('uses canonical three-letter prefixes for every theorem environment', () =>
   assert.doesNotMatch(result.latex, /\\label\{(?:theorem|lemma|prop|proposition|corollary|assumption|definition|remark):/)
 })
 
+test('uses one cleanup option for theorem labels and existing reference prefixes', () => {
+  const input = String.raw`## proposition prop:claim
+
+### statement
+
+See \(\mathrm{proposition:source}\), \(\ref{prop:claim}\), and \(\eqref{theorem:main}\).
+
+### proof
+Done.`
+  const normalized = convertMarkdown(input)
+  assert.match(normalized.latex, /\\begin\{proposition\}\\label\{pro:claim\}/)
+  assert.match(normalized.latex, /\\ref\{pro:source\}/)
+  assert.match(normalized.latex, /\\ref\{pro:claim\}/)
+  assert.match(normalized.latex, /\\eqref\{thm:main\}/)
+
+  const preserved = convertMarkdown(input, {
+    ...DEFAULT_RENDER_OPTIONS,
+    cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, normalizeLabelPrefixes: false },
+  })
+  assert.match(preserved.latex, /\\begin\{proposition\}\\label\{prop:claim\}/)
+  assert.match(preserved.latex, /\\ref\{proposition:source\}/)
+  assert.match(preserved.latex, /\\ref\{prop:claim\}/)
+  assert.match(preserved.latex, /\\eqref\{theorem:main\}/)
+})
+
 test('keeps environment boundaries and ordinary headings separate', () => {
   const result = convertMarkdown(`# theorem target
 
@@ -171,8 +196,8 @@ c &= d
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    removeBoxed: true,
-    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
   assert.match(result.latex, /Inline \$x_1\$ and \$y\^2\$/)
@@ -326,18 +351,20 @@ test('removes boxed commands by default and preserves them when disabled', () =>
   assert.match(removed.latex, /\$x \+ y\$/)
   assert.match(removed.latex, /z = 1/)
 
-  const options = { ...DEFAULT_RENDER_OPTIONS, removeBoxed: false }
+  const options = { ...DEFAULT_RENDER_OPTIONS, cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, removeBoxed: false } }
   const kept = convertMarkdown(input, options)
   assert.match(kept.latex, /\\boxed\{x \+ \\boxed\{y\}\}/)
   assert.match(kept.latex, /\\boxed\{z = 1\}/)
 })
 
-test('renders nested lists, emphasis, code, and plain special characters', () => {
-  const result = convertMarkdown(String.raw`- **First** item
+test('renders nested lists, bold, italic, code, and plain special characters', () => {
+  const result = convertMarkdown(String.raw`- **First** and *second* item
   - Nested \(x_1\)
 - Code ` + '`a_b\\c`' + String.raw` and A & B #1.`)
 
   assert.match(result.latex, /\\begin\{itemize\}[\s\S]*\\textbf\{First\}/)
+  assert.match(result.latex, /\\textit\{second\}/)
+  assert.doesNotMatch(result.latex, /\\emph\{/)
   assert.ok(result.latex.includes(String.raw`Nested $x_1$`))
   assert.match(result.latex, /\\texttt\{a\\_b\\textbackslash\{\}c\}/)
   assert.match(result.latex, /A \\& B \\#1/)
@@ -404,8 +431,8 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    removeBoxed: true,
-    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
   assert.match(result.latex, /\\begin\{equation\}\noutside - body\n\\end\{equation\}/)
@@ -526,15 +553,15 @@ function normalizedReferenceTokens(value: string): string {
 }
 
 function assertMathSpacingIsStable(input: string): void {
-  const tokenPreservingOptions = {
-    ...DEFAULT_MATH_SPACING_OPTIONS,
+  const tokenPreservingCleanup = {
+    ...DEFAULT_MATH_CLEANUP_OPTIONS,
     fontCommandBraces: false,
     collapseSpaces: true,
   }
   for (const segment of blueprintMathSegments(input)) {
-    const formatted = formatMathSpacing(segment, tokenPreservingOptions)
+    const formatted = formatMathSpacing(segment, DEFAULT_MATH_SPACING_OPTIONS, tokenPreservingCleanup)
     assert.equal(formatted.replace(/\s/g, ''), normalizedReferenceTokens(segment).replace(/\s/g, ''))
-    assert.equal(formatMathSpacing(formatted, tokenPreservingOptions), formatted)
+    assert.equal(formatMathSpacing(formatted, DEFAULT_MATH_SPACING_OPTIONS, tokenPreservingCleanup), formatted)
     const defaultFormatted = formatMathSpacing(segment)
     assert.equal(formatMathSpacing(defaultFormatted), defaultFormatted)
   }

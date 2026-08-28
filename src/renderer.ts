@@ -208,7 +208,7 @@ function renderHeading(block: HeadingBlock, context: RenderContext, owner: strin
     context.diagnostics,
     block.line,
     context.options.mathSpacing,
-    context.options.removeBoxed,
+    context.options.cleanup,
     (value) => convertEquationReferences(value, owner, context, block.line),
   );
   return `\\${command}${star}{${title}}`;
@@ -221,7 +221,7 @@ function renderParagraph(block: ParagraphBlock, context: RenderContext, owner: s
     context.diagnostics,
     block.line,
     context.options.mathSpacing,
-    context.options.removeBoxed,
+    context.options.cleanup,
     (value) => convertEquationReferences(value, owner, context, block.line),
   );
 }
@@ -239,7 +239,7 @@ function renderMath(
     style,
     context.options.mathSpacing,
     indentation(context.options),
-    context.options.removeBoxed,
+    context.options.cleanup,
     context.equations.byBlock.get(block)?.label,
   );
 }
@@ -354,7 +354,7 @@ export function renderLatex(
   const context: RenderContext = {
     options,
     diagnostics,
-    labels: new LabelRegistry(),
+    labels: new LabelRegistry(options.cleanup.normalizeLabelPrefixes),
     theoremLabels: new Map(),
     equations: {
       byBlock: new Map(),

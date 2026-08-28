@@ -3,8 +3,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import {
+  DEFAULT_MATH_CLEANUP_OPTIONS,
   DEFAULT_MATH_SPACING_OPTIONS,
   formatMathSpacing,
+  type MathCleanupOptions,
   type MathSpacingOptions,
 } from '../src/math-spacing.ts'
 
@@ -19,10 +21,12 @@ function only(rule: MathSpacingRule): MathSpacingOptions {
     compactParentheses: false,
     pairedBars: false,
     namedFunctions: false,
-    fontCommandBraces: false,
-    collapseSpaces: false,
     [rule]: true,
   }
+}
+
+function cleanup(overrides: Partial<MathCleanupOptions> = {}): MathCleanupOptions {
+  return { ...DEFAULT_MATH_CLEANUP_OPTIONS, ...overrides }
 }
 
 test('formats the requested examples without changing mathematical tokens', () => {
@@ -43,12 +47,20 @@ test('formats the requested examples without changing mathematical tokens', () =
   assert.doesNotMatch(formatMathSpacing('|f(x)|\\le1'), /C/)
 })
 
-test('the master switch preserves the math body byte for byte', () => {
+test('the master switch only disables math spacing rules', () => {
   const input = '  |f ( x )|\\le1,\\quad y*z  '
   assert.equal(formatMathSpacing(input, {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
-  }), input)
+  }, cleanup({ collapseSpaces: false })), input)
+  assert.equal(formatMathSpacing(String.raw`\mathcal X                    \tag{1}`, {
+    ...DEFAULT_MATH_SPACING_OPTIONS,
+    enabled: false,
+  }), String.raw`\mathcal{X} \tag{1}`)
+  assert.equal(formatMathSpacing(String.raw`x                    \text{a    b} % keep    comment`, {
+    ...DEFAULT_MATH_SPACING_OPTIONS,
+    enabled: false,
+  }), String.raw`x \text{a    b} % keep    comment`)
 })
 
 test('braces single atoms after math font commands by default', () => {
@@ -67,11 +79,11 @@ test('braces single atoms after math font commands by default', () => {
     assert.equal(formatMathSpacing(formatMathSpacing(input)), expected)
   }
 
-  assert.equal(formatMathSpacing(String.raw`\mathcal X`, {
-    ...DEFAULT_MATH_SPACING_OPTIONS,
-    fontCommandBraces: false,
-    collapseSpaces: false,
-  }), String.raw`\mathcal X`)
+  assert.equal(formatMathSpacing(
+    String.raw`\mathcal X`,
+    DEFAULT_MATH_SPACING_OPTIONS,
+    cleanup({ fontCommandBraces: false }),
+  ), String.raw`\mathcal X`)
 })
 
 test('converts math-styled reference labels to hyperref references', () => {
@@ -87,6 +99,11 @@ test('converts math-styled reference labels to hyperref references', () => {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
   }), String.raw`\ref{lem:operator-identities}`)
+  assert.equal(formatMathSpacing(
+    String.raw`\mathrm{prop:claim} \eqref{theorem:main}`,
+    DEFAULT_MATH_SPACING_OPTIONS,
+    cleanup({ normalizeLabelPrefixes: false }),
+  ), String.raw`\ref{prop:claim} \eqref{theorem:main}`)
   assert.equal(formatMathSpacing(String.raw`\mathrm R`), String.raw`\mathrm{R}`)
 })
 
@@ -179,7 +196,11 @@ test('adds readable implicit multiplication and punctuation spacing', () => {
 test('collapses repeated source spaces without touching explicit spacing commands', () => {
   const input = String.raw`A^{-1}\Phi^*\varepsilon_{1:t}                    \tag{1}`
   assert.equal(formatMathSpacing(input), String.raw`A^{-1} \Phi^* \varepsilon_{1:t} \tag{1}`)
-  assert.equal(formatMathSpacing(input, { ...DEFAULT_MATH_SPACING_OPTIONS, collapseSpaces: false }), String.raw`A^{-1} \Phi^* \varepsilon_{1:t}                    \tag{1}`)
+  assert.equal(formatMathSpacing(
+    input,
+    DEFAULT_MATH_SPACING_OPTIONS,
+    cleanup({ collapseSpaces: false }),
+  ), String.raw`A^{-1} \Phi^* \varepsilon_{1:t}                    \tag{1}`)
   assert.equal(formatMathSpacing(String.raw`a\quad    b`), String.raw`a\quad b`)
 })
 

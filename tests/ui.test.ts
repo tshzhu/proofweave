@@ -131,16 +131,14 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
     'compactParentheses',
     'pairedBars',
     'namedFunctions',
-    'fontCommandBraces',
-    'collapseSpaces',
   ])
   assert.match(html, /name="mathSpacingEnabled" checked/)
-  assert.match(html, /name="removeBoxed" checked/)
-  assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 8)
+  assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 6)
+  assert.equal((html.match(/data-cleanup-rule="[^"]+" checked/g) ?? []).length, 4)
   assert.match(html, /class="option-row math-spacing-master"[\s\S]*class="math-spacing-rules"/)
   assert.ok(html.indexOf('name="mathSpacingEnabled"') < html.indexOf('data-math-spacing-rule="relations"'))
-  assert.doesNotMatch(detailsSection('Math spacing'), /data-math-spacing-rule="collapseSpaces"/)
-  assert.match(detailsSection('Cleanup'), /name="removeBoxed" checked[\s\S]*data-math-spacing-rule="collapseSpaces" checked/)
+  assert.doesNotMatch(detailsSection('Math spacing'), /data-cleanup-rule=/)
+  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="removeBoxed" checked[\s\S]*data-cleanup-rule="normalizeLabelPrefixes" checked[\s\S]*data-cleanup-rule="fontCommandBraces" checked[\s\S]*data-cleanup-rule="collapseSpaces" checked/)
   assert.ok(html.indexOf('<summary>Math spacing</summary>') < html.indexOf('<summary>Diagnostics</summary>'))
   assert.match(html, /<summary>Diagnostics<\/summary>/)
   assert.match(html, /id="primary-action"[\s\S]*View LaTeX/)
@@ -155,7 +153,7 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
       'Indentation',
       'Inline math',
       'Display math (statement)',
-      'Display math (other)',
+      'Display math (main text)',
       'Section headings',
       'Math spacing',
       'Cleanup',
@@ -188,7 +186,8 @@ test('keeps the requested interactions wired to the new interface', () => {
     'sectionNumbering',
     'mathSpacing',
     'isMathSpacingRule',
-    'removeBoxed',
+    'cleanup',
+    'isCleanupRule',
     'updateMathSpacingControls',
     "input.disabled = !options.mathSpacing.enabled",
     'themeToggle',
@@ -220,6 +219,8 @@ test('keeps the requested interactions wired to the new interface', () => {
   assert.match(css, /input\[type='checkbox'\]/)
   assert.match(css, /\.math-spacing-rules\s*\{[\s\S]*margin:\s*0/)
   assert.match(css, /\.option-row:has\(input:disabled\)[\s\S]*opacity:\s*0\.45/)
+  assert.match(main, /querySelectorAll<HTMLInputElement>\('\[data-math-spacing-rule\]'\)/)
+  assert.doesNotMatch(main, /querySelectorAll<HTMLInputElement>\('\[data-cleanup-rule\]'\)[\s\S]*disabled/)
   assert.match(css, /:root\[data-theme='light'\]/)
   assert.match(css, /--accent|--red:\s*#b31b1b/)
   assert.match(css, /\.token-command\s*\{\s*color:\s*var\(--light-blue\)/)

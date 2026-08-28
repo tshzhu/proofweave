@@ -7,13 +7,20 @@ import type { DisplayMathStyle, InlineMathStyle } from "./math.ts";
 export type IndentOption = 0 | 2 | 4 | "tab";
 export type SectionNumbering = "numbered" | "unnumbered";
 
+export interface CleanupOptions {
+  removeBoxed: boolean;
+  normalizeLabelPrefixes: boolean;
+  fontCommandBraces: boolean;
+  collapseSpaces: boolean;
+}
+
 export interface ConverterOptions {
   indent: IndentOption;
   inlineMath: InlineMathStyle;
   statementDisplayMath: DisplayMathStyle;
   outsideDisplayMath: DisplayMathStyle;
   sectionNumbering: SectionNumbering;
-  removeBoxed: boolean;
+  cleanup: CleanupOptions;
   mathSpacing: MathSpacingOptions;
 }
 
@@ -24,11 +31,16 @@ export const MATH_SPACING_RULES = [
   "compactParentheses",
   "pairedBars",
   "namedFunctions",
-  "fontCommandBraces",
-  "collapseSpaces",
 ] as const satisfies readonly Exclude<keyof MathSpacingOptions, "enabled">[];
 
 export type MathSpacingRule = (typeof MATH_SPACING_RULES)[number];
+
+export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
+  removeBoxed: true,
+  normalizeLabelPrefixes: true,
+  fontCommandBraces: true,
+  collapseSpaces: true,
+};
 
 export const DEFAULT_CONVERTER_OPTIONS: Readonly<ConverterOptions> = {
   indent: "tab",
@@ -36,7 +48,7 @@ export const DEFAULT_CONVERTER_OPTIONS: Readonly<ConverterOptions> = {
   statementDisplayMath: "equation",
   outsideDisplayMath: "brackets",
   sectionNumbering: "unnumbered",
-  removeBoxed: true,
+  cleanup: DEFAULT_CLEANUP_OPTIONS,
   mathSpacing: DEFAULT_MATH_SPACING_OPTIONS,
 };
 
@@ -57,12 +69,17 @@ export function cloneConverterOptions(
 ): ConverterOptions {
   return {
     ...options,
+    cleanup: { ...options.cleanup },
     mathSpacing: { ...options.mathSpacing },
   };
 }
 
 export function isMathSpacingRule(value: string | undefined): value is MathSpacingRule {
   return MATH_SPACING_RULES.includes(value as MathSpacingRule);
+}
+
+export function isCleanupRule(value: string | undefined): value is keyof CleanupOptions {
+  return value !== undefined && value in DEFAULT_CLEANUP_OPTIONS;
 }
 
 export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] {
@@ -83,25 +100,25 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (options.sectionNumbering !== DEFAULT_CONVERTER_OPTIONS.sectionNumbering) {
     args.push(`--section-numbering=${options.sectionNumbering}`);
   }
-  if (!options.removeBoxed) args.push("--no-remove-boxed");
+  if (!options.cleanup.removeBoxed) args.push("--no-remove-boxed");
+  if (!options.cleanup.normalizeLabelPrefixes) args.push("--no-normalize-label-prefixes");
+  if (!options.cleanup.fontCommandBraces) args.push("--no-font-command-braces");
+  if (!options.cleanup.collapseSpaces) args.push("--no-collapse-spaces");
 
   if (!options.mathSpacing.enabled) {
     args.push("--no-math-spacing");
-    return args;
-  }
-
-  const ruleFlags: Readonly<Record<MathSpacingRule, string>> = {
-    relations: "relations",
-    binaryOperators: "binary-operators",
-    punctuation: "punctuation",
-    compactParentheses: "compact-parentheses",
-    pairedBars: "paired-bars",
-    namedFunctions: "named-functions",
-    fontCommandBraces: "font-command-braces",
-    collapseSpaces: "collapse-spaces",
-  };
-  for (const rule of MATH_SPACING_RULES) {
-    if (!options.mathSpacing[rule]) args.push(`--no-${ruleFlags[rule]}`);
+  } else {
+    const ruleFlags: Readonly<Record<MathSpacingRule, string>> = {
+      relations: "relations",
+      binaryOperators: "binary-operators",
+      punctuation: "punctuation",
+      compactParentheses: "compact-parentheses",
+      pairedBars: "paired-bars",
+      namedFunctions: "named-functions",
+    };
+    for (const rule of MATH_SPACING_RULES) {
+      if (!options.mathSpacing[rule]) args.push(`--no-${ruleFlags[rule]}`);
+    }
   }
   return args;
 }
@@ -131,8 +148,15 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     options.mathSpacing.enabled = enabled;
     return true;
   }
-  if (name === "remove-boxed") {
-    options.removeBoxed = enabled;
+  const cleanupRules: Readonly<Record<string, keyof CleanupOptions>> = {
+    "remove-boxed": "removeBoxed",
+    "normalize-label-prefixes": "normalizeLabelPrefixes",
+    "font-command-braces": "fontCommandBraces",
+    "collapse-spaces": "collapseSpaces",
+  };
+  const cleanupRule = cleanupRules[name];
+  if (cleanupRule) {
+    options.cleanup[cleanupRule] = enabled;
     return true;
   }
   const rules: Readonly<Record<string, MathSpacingRule>> = {
@@ -142,8 +166,6 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     "compact-parentheses": "compactParentheses",
     "paired-bars": "pairedBars",
     "named-functions": "namedFunctions",
-    "font-command-braces": "fontCommandBraces",
-    "collapse-spaces": "collapseSpaces",
   };
   const rule = rules[name];
   if (!rule) return false;
@@ -259,6 +281,9 @@ Conversion options:
   --other-display=dollars|brackets|equation
   --section-numbering=unnumbered|numbered
   --[no-]remove-boxed
+  --[no-]normalize-label-prefixes
+  --[no-]font-command-braces
+  --[no-]collapse-spaces
   --[no-]math-spacing
   --[no-]relations
   --[no-]binary-operators
@@ -266,7 +291,6 @@ Conversion options:
   --[no-]compact-parentheses
   --[no-]paired-bars
   --[no-]named-functions
-  --[no-]font-command-braces
-  --[no-]collapse-spaces`;
+`;
 
 export type { DisplayMathStyle, InlineMathStyle } from "./math.ts";

@@ -42,6 +42,7 @@ test('applies a complete non-default CLI configuration identically to the web co
     '--other-display=dollars',
     '--section-numbering=numbered',
     '--no-remove-boxed',
+    '--no-normalize-label-prefixes',
     '--no-relations',
     '--no-binary-operators',
     '--no-punctuation',
@@ -57,15 +58,16 @@ test('applies a complete non-default CLI configuration identically to the web co
   options.statementDisplayMath = 'brackets'
   options.outsideDisplayMath = 'dollars'
   options.sectionNumbering = 'numbered'
-  options.removeBoxed = false
+  options.cleanup.removeBoxed = false
+  options.cleanup.normalizeLabelPrefixes = false
   options.mathSpacing.relations = false
   options.mathSpacing.binaryOperators = false
   options.mathSpacing.punctuation = false
   options.mathSpacing.compactParentheses = false
   options.mathSpacing.pairedBars = false
   options.mathSpacing.namedFunctions = false
-  options.mathSpacing.fontCommandBraces = false
-  options.mathSpacing.collapseSpaces = false
+  options.cleanup.fontCommandBraces = false
+  options.cleanup.collapseSpaces = false
 
   const result = runCLI(args, markdown)
   assert.equal(result.status, 0)
@@ -124,9 +126,48 @@ test('toggles boxed cleanup through the CLI without drifting from the shared cor
   assert.doesNotMatch(defaultResult.stdout, /\\boxed/)
 
   const options = cloneConverterOptions()
-  options.removeBoxed = false
+  options.cleanup.removeBoxed = false
   const keepResult = runCLI(['--no-remove-boxed'], markdown)
   assert.equal(keepResult.status, 0)
   assert.equal(keepResult.stdout, convertMarkdown(markdown, options).latex)
   assert.match(keepResult.stdout, /\\boxed/)
+})
+
+test('shares label-prefix cleanup across theorem labels and existing references', () => {
+  const markdown = String.raw`## proposition prop:claim
+
+### statement
+See \(\ref{prop:claim}\) and \(\mathrm{theorem:main}\).
+
+### proof
+Done.`
+  const options = cloneConverterOptions()
+  options.cleanup.normalizeLabelPrefixes = false
+  const result = runCLI(['--no-normalize-label-prefixes'], markdown)
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, convertMarkdown(markdown, options).latex)
+  assert.match(result.stdout, /\\label\{prop:claim\}/)
+  assert.match(result.stdout, /\\ref\{prop:claim\}/)
+  assert.match(result.stdout, /\\ref\{theorem:main\}/)
+})
+
+test('keeps cleanup flags effective when math spacing is disabled', () => {
+  const markdown = String.raw`Inline \(\boxed{\mathcal X                    \ref{prop:claim}}\).`
+  const options = cloneConverterOptions()
+  options.mathSpacing.enabled = false
+  options.cleanup.removeBoxed = false
+  options.cleanup.normalizeLabelPrefixes = false
+  options.cleanup.fontCommandBraces = false
+  options.cleanup.collapseSpaces = false
+  const args = [
+    '--no-math-spacing',
+    '--no-remove-boxed',
+    '--no-normalize-label-prefixes',
+    '--no-font-command-braces',
+    '--no-collapse-spaces',
+  ]
+  const result = runCLI(args, markdown)
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, convertMarkdown(markdown, options).latex)
+  assert.match(result.stdout, /\\boxed\{\\mathcal X {20}\\ref\{prop:claim\}\}/)
 })

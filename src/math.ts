@@ -1,7 +1,9 @@
 import type { Diagnostic } from "./labels.ts";
 import {
+  DEFAULT_MATH_CLEANUP_OPTIONS,
   DEFAULT_MATH_SPACING_OPTIONS,
   formatMathSpacing,
+  type MathCleanupOptions,
   type MathSpacingOptions,
 } from "./math-spacing.ts";
 
@@ -50,9 +52,10 @@ export function removeBoxedCommands(value: string): string {
 function normalizeMathBody(
   value: string,
   spacing: MathSpacingOptions,
-  removeBoxed: boolean,
+  cleanup: MathCleanupOptions & { removeBoxed: boolean },
 ): string {
-  return formatMathSpacing(removeBoxed ? removeBoxedCommands(value) : value, spacing);
+  const cleaned = cleanup.removeBoxed ? removeBoxedCommands(value) : value;
+  return formatMathSpacing(cleaned, spacing, cleanup);
 }
 
 function escapePlainText(value: string): string {
@@ -162,7 +165,7 @@ function renderMarkdownText(
           line,
           transformPlain,
         );
-        output += emphasis === "**" ? `\\textbf{${body}}` : `\\emph{${body}}`;
+        output += emphasis === "**" ? `\\textbf{${body}}` : `\\textit{${body}}`;
         index = close + emphasis.length;
         continue;
       }
@@ -197,7 +200,10 @@ export function renderInline(
   diagnostics: Diagnostic[] = [],
   line?: number,
   spacing: MathSpacingOptions = DEFAULT_MATH_SPACING_OPTIONS,
-  removeBoxed = true,
+  cleanup: MathCleanupOptions & { removeBoxed: boolean } = {
+    ...DEFAULT_MATH_CLEANUP_OPTIONS,
+    removeBoxed: true,
+  },
   transformPlain?: (value: string) => string,
 ): string {
   const pieces: string[] = [];
@@ -213,7 +219,7 @@ export function renderInline(
       const close = value.indexOf("\\)", index + 2);
       if (close >= 0) {
         flush();
-        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 2, close), spacing, removeBoxed)}${delimiters[1]}`);
+        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 2, close), spacing, cleanup)}${delimiters[1]}`);
         index = close + 2;
         continue;
       }
@@ -229,7 +235,7 @@ export function renderInline(
       const close = findUnescaped(value, "$", index + 1);
       if (close >= 0 && value[close + 1] !== "$") {
         flush();
-        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 1, close), spacing, removeBoxed)}${delimiters[1]}`);
+        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 1, close), spacing, cleanup)}${delimiters[1]}`);
         index = close + 1;
         continue;
       }
@@ -247,10 +253,13 @@ export function renderDisplay(
   style: DisplayMathStyle,
   spacing: MathSpacingOptions,
   indent = "",
-  removeBoxed = true,
+  cleanup: MathCleanupOptions & { removeBoxed: boolean } = {
+    ...DEFAULT_MATH_CLEANUP_OPTIONS,
+    removeBoxed: true,
+  },
   equationLabel?: string,
 ): string {
-  const normalizedBody = normalizeMathBody(body.replace(/^\n+|\n+$/g, ""), spacing, removeBoxed);
+  const normalizedBody = normalizeMathBody(body.replace(/^\n+|\n+$/g, ""), spacing, cleanup);
   const indentedBody = normalizedBody
     .split("\n")
     .map((line) => (line ? `${indent}${line}` : line))

@@ -184,11 +184,15 @@ Value options accept either `--option=value` or `--option value`.
 
 Every option in this table is enabled by default. Both positive and negative
 forms are accepted, for example `--remove-boxed` and `--no-remove-boxed`.
-Math-spacing subrules are effective only while `--math-spacing` is enabled.
+Cleanup options remain effective when `--no-math-spacing` is used; the six
+math-spacing subrules are effective only while `--math-spacing` is enabled.
 
 | Option | Effect |
 | --- | --- |
 | `--[no-]remove-boxed` | Remove or preserve `\boxed{...}` wrappers while retaining their contents. |
+| `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
+| `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
+| `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
 | `--[no-]math-spacing` | Enable or disable the math whitespace formatter as a whole. |
 | `--[no-]relations` | Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`. |
 | `--[no-]binary-operators` | Add consistent spaces around binary operators such as `+`, `-`, `*`, and `\times`, while protecting unary signs and scripts. |
@@ -196,8 +200,6 @@ Math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]compact-parentheses` | Keep delimiters and function calls compact, for example `f(x)` rather than `f ( x )`. |
 | `--[no-]paired-bars` | Normalize inner spacing for paired absolute-value and norm bars, for example `| x |`. |
 | `--[no-]named-functions` | Add the appropriate gap after functions such as `\sin`, `\log`, and `\exp`. |
-| `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
-| `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
 
 Regardless of the selected display style, a formula containing `\tag{N}` uses
 an `equation` environment and receives an owner-aware label such as
@@ -290,7 +292,7 @@ environments. Labels use canonical prefixes `thm`, `lem`, `pro`, `cor`, `asm`,
 `def`, and `rmk`.
 
 Ordinary headings, paragraphs, ordered and unordered nested lists, inline math,
-display math, basic emphasis, and code spans are supported. Proof-final
+display math, bold, `*italic*` → `\textit{...}`, and code spans are supported. Proof-final
 `\square` markers are removed automatically. Tagged equations receive stable
 labels and unambiguous references are converted to `\eqref`.
 

@@ -39,14 +39,19 @@ const PREFIX_ALIASES: Readonly<Record<EnvironmentKind, readonly string[]>> = {
 
 const ANY_PREFIX_PATTERN = /^(?:thm|theorem|lem|lemma|pro|prop|proposition|cor|corollary|asm|assumption|def|definition|rmk|remark):/i;
 
+function environmentKindForPrefix(prefix: string): EnvironmentKind | undefined {
+  const normalized = prefix.toLowerCase();
+  return ENVIRONMENT_KINDS.find((candidate) => PREFIX_ALIASES[candidate].includes(normalized));
+}
+
 /** Normalize a label's environment prefix to the canonical three-letter form. */
-export function normalizeLabelPrefix(identifier: string): string {
+export function normalizeLabelPrefix(identifier: string, enabled = true): string {
   const value = identifier.trim();
+  if (!enabled) return value;
   const match = /^([A-Za-z]+):(.*)$/.exec(value);
   if (!match) return value;
 
-  const prefix = match[1]!.toLowerCase();
-  const kind = ENVIRONMENT_KINDS.find((candidate) => PREFIX_ALIASES[candidate].includes(prefix));
+  const kind = environmentKindForPrefix(match[1]!);
   return kind ? `${LABEL_PREFIX[kind]}:${match[2]}` : value;
 }
 
@@ -77,12 +82,18 @@ export interface LabelResult {
 
 export class LabelRegistry {
   private readonly counts = new Map<string, number>();
+  private readonly normalizePrefixes: boolean;
+
+  constructor(normalizePrefixes = true) {
+    this.normalizePrefixes = normalizePrefixes;
+  }
 
   create(kind: EnvironmentKind, identifier: string, line?: number): LabelResult {
     const diagnostics: Diagnostic[] = [];
-    const aliases = PREFIX_ALIASES[kind];
-    const prefixPattern = new RegExp(`^(?:${aliases.join("|")}):`, "i");
-    const withoutPrefix = identifier.trim().replace(prefixPattern, "").replace(ANY_PREFIX_PATTERN, "");
+    const value = identifier.trim();
+    const explicit = /^([A-Za-z]+):(.*)$/.exec(value);
+    const explicitKind = explicit ? environmentKindForPrefix(explicit[1]!) : undefined;
+    const withoutPrefix = explicitKind ? explicit![2]! : value.replace(ANY_PREFIX_PATTERN, "");
     const normalized = normalizeIdentifier(withoutPrefix);
 
     if (!normalized) {
@@ -95,7 +106,8 @@ export class LabelRegistry {
       return { diagnostics };
     }
 
-    const base = `${LABEL_PREFIX[kind]}:${normalized}`;
+    const prefix = !this.normalizePrefixes && explicitKind ? explicit![1]! : LABEL_PREFIX[kind];
+    const base = normalizeLabelPrefix(`${prefix}:${normalized}`, this.normalizePrefixes);
     const occurrence = (this.counts.get(base) ?? 0) + 1;
     this.counts.set(base, occurrence);
 

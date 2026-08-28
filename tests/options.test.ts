@@ -22,24 +22,34 @@ test('round-trips every effective web option through CLI arguments', () => {
   options.statementDisplayMath = 'brackets'
   options.outsideDisplayMath = 'dollars'
   options.sectionNumbering = 'numbered'
-  options.removeBoxed = false
+  options.cleanup.removeBoxed = false
+  options.cleanup.normalizeLabelPrefixes = false
+  options.cleanup.fontCommandBraces = false
   options.mathSpacing.punctuation = false
   options.mathSpacing.pairedBars = false
-  options.mathSpacing.collapseSpaces = false
+  options.cleanup.collapseSpaces = false
 
   const parsed = parseCLIArguments(optionsToCLIArgs(options))
   assert.deepEqual(parsed.options, options)
   assert.equal(parsed.inputPath, undefined)
 })
 
-test('emits only the math spacing master flag while the formatter is disabled', () => {
+test('keeps independent cleanup flags while the math spacing master is disabled', () => {
   const options = cloneConverterOptions()
   options.mathSpacing.enabled = false
   for (const rule of MATH_SPACING_RULES) options.mathSpacing[rule] = false
-  assert.deepEqual(optionsToCLIArgs(options), ['--no-math-spacing'])
+  options.cleanup.normalizeLabelPrefixes = false
+  options.cleanup.fontCommandBraces = false
+  options.cleanup.collapseSpaces = false
+  assert.deepEqual(optionsToCLIArgs(options), [
+    '--no-normalize-label-prefixes',
+    '--no-font-command-braces',
+    '--no-collapse-spaces',
+    '--no-math-spacing',
+  ])
   assert.equal(
     cliCommand(options, 'proof.md'),
-    'proofweave --no-math-spacing proof.md',
+    'proofweave --no-normalize-label-prefixes --no-font-command-braces --no-collapse-spaces --no-math-spacing proof.md',
   )
 })
 
@@ -61,18 +71,31 @@ test('parses boolean aliases, split values, and I/O flags', () => {
   assert.equal(parsed.options.outsideDisplayMath, 'equation')
   assert.equal(parsed.options.sectionNumbering, 'numbered')
   assert.equal(parsed.options.mathSpacing.relations, false)
-  assert.equal(parsed.options.mathSpacing.fontCommandBraces, false)
+  assert.equal(parsed.options.cleanup.fontCommandBraces, false)
   assert.equal(parsed.outputPath, 'proof.tex')
   assert.equal(parsed.inputPath, 'proof.md')
 })
 
-test('serializes and parses the remove boxed option', () => {
+test('serializes and parses all independent cleanup options', () => {
   const options = cloneConverterOptions()
-  assert.equal(options.removeBoxed, true)
-  options.removeBoxed = false
-  assert.ok(optionsToCLIArgs(options).includes('--no-remove-boxed'))
-  assert.equal(parseCLIArguments(['--no-remove-boxed']).options.removeBoxed, false)
-  assert.equal(parseCLIArguments(['--remove-boxed']).options.removeBoxed, true)
+  assert.deepEqual(options.cleanup, {
+    removeBoxed: true,
+    normalizeLabelPrefixes: true,
+    fontCommandBraces: true,
+    collapseSpaces: true,
+  })
+  for (const [key, flag] of [
+    ['removeBoxed', 'remove-boxed'],
+    ['normalizeLabelPrefixes', 'normalize-label-prefixes'],
+    ['fontCommandBraces', 'font-command-braces'],
+    ['collapseSpaces', 'collapse-spaces'],
+  ] as const) {
+    const configured = cloneConverterOptions()
+    configured.cleanup[key] = false
+    assert.ok(optionsToCLIArgs(configured).includes(`--no-${flag}`))
+    assert.equal(parseCLIArguments([`--no-${flag}`]).options.cleanup[key], false)
+    assert.equal(parseCLIArguments([`--${flag}`]).options.cleanup[key], true)
+  }
 })
 
 test('rejects invalid values, unknown flags, conflicts, and multiple files', () => {

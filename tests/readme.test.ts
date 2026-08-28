@@ -33,7 +33,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
     const optionField = /^\s{2}(.+?)(?:\s{2,}|$)/.exec(line)?.[1]
     return optionField ? [...optionField.matchAll(/(?:^|,\s*)(--?[^,\s]+)/g)].map((match) => match[1]!) : []
   })
-  assert.equal(helpOptions.length, 23)
+  assert.equal(helpOptions.length, 24)
   for (const option of helpOptions) {
     assert.ok(readme.includes(`\`${option}\``), `README does not document ${option}`)
   }
@@ -58,7 +58,8 @@ test('describes CLI defaults, streams, failures, and only supported installation
     'non-zero exit status',
     '`--modify` is destructive',
     'enabled by default',
-    'Math-spacing subrules are effective only while `--math-spacing` is enabled',
+    'Cleanup options remain effective when `--no-math-spacing` is used',
+    'math-spacing subrules are effective only while `--math-spacing` is enabled',
   ]) {
     assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
   }
