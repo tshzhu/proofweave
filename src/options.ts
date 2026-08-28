@@ -242,9 +242,9 @@ export function parseCLIArguments(args: readonly string[]): ParsedCLIArguments {
 
 export const CLI_HELP = `Usage: proofweave [options] [FILE.md]
 
-Convert AI-generated Markdown mathematical proofs into clean, publication-ready
-LaTeX proof content. Read stdin when FILE is omitted or is '-'. Write LaTeX to
-stdout unless --output or --modify is used.
+Convert Markdown mathematical proofs into clean, well-formatted LaTeX. Read stdin
+when FILE is omitted or is '-'. Write LaTeX to stdout unless --output or --modify
+is used.
 
 I/O:
   --output, -o FILE                 Write output to FILE

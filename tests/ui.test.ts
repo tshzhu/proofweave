@@ -24,6 +24,11 @@ function spacingRuleValues(): string[] {
     .map((match) => match[1] ?? '')
 }
 
+function detailsSection(summary: string): string {
+  const pattern = new RegExp(`<details[^>]*>[\\s\\S]*?<summary>${summary.replace(/[()]/g, '\\$&')}<\\/summary>([\\s\\S]*?)<\\/details>`)
+  return pattern.exec(html)?.[1] ?? ''
+}
+
 test('uses the BibTeX Tidy editor and fixed-sidebar structure', () => {
   assert.match(html, /<main id="editor"/)
   assert.match(html, /<aside id="sidebar"/)
@@ -134,6 +139,8 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
   assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 8)
   assert.match(html, /class="option-row math-spacing-master"[\s\S]*class="math-spacing-rules"/)
   assert.ok(html.indexOf('name="mathSpacingEnabled"') < html.indexOf('data-math-spacing-rule="relations"'))
+  assert.doesNotMatch(detailsSection('Math spacing'), /data-math-spacing-rule="collapseSpaces"/)
+  assert.match(detailsSection('Cleanup'), /name="removeBoxed" checked[\s\S]*data-math-spacing-rule="collapseSpaces" checked/)
   assert.ok(html.indexOf('<summary>Math spacing</summary>') < html.indexOf('<summary>Diagnostics</summary>'))
   assert.match(html, /<summary>Diagnostics<\/summary>/)
   assert.match(html, /id="primary-action"[\s\S]*View LaTeX/)
@@ -147,8 +154,8 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
       'View',
       'Indentation',
       'Inline math',
-      'Statement display math',
-      'Other display math',
+      'Display math (statement)',
+      'Display math (other)',
       'Section headings',
       'Math spacing',
       'Cleanup',

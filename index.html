@@ -172,7 +172,7 @@
         </details>
 
         <details open>
-          <summary>Statement display math</summary>
+          <summary>Display math (statement)</summary>
           <div class="option-list">
             <label class="option-row">
               <input type="radio" name="statementDisplay" value="dollars" />
@@ -190,7 +190,7 @@
         </details>
 
         <details open>
-          <summary>Other display math</summary>
+          <summary>Display math (other)</summary>
           <div class="option-list">
             <label class="option-row">
               <input type="radio" name="outsideDisplay" value="dollars" />
@@ -257,10 +257,6 @@
                 <input type="checkbox" data-math-spacing-rule="fontCommandBraces" checked />
                 <span>Brace math font commands <small><code>\mathcal{X}</code></small></span>
               </label>
-              <label class="option-row">
-                <input type="checkbox" data-math-spacing-rule="collapseSpaces" checked />
-                <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
-              </label>
             </div>
           </div>
         </details>
@@ -271,6 +267,10 @@
             <label class="option-row">
               <input type="checkbox" name="removeBoxed" checked />
               <span>Remove boxed commands <small><code>\boxed{x}</code> → <code>x</code></small></span>
+            </label>
+            <label class="option-row">
+              <input type="checkbox" data-math-spacing-rule="collapseSpaces" checked />
+              <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
             </label>
           </div>
         </details>

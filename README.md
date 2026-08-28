@@ -1,170 +1,321 @@
 # ProofWeave
 
-ProofWeave converts Markdown mathematical proofs into clean, well-formatted
-LaTeX.
+Convert Markdown mathematical proofs into clean, well-formatted LaTeX.
+[Try it out](https://tshzhu.github.io/proofweave/).
 
-Website: <https://tshzhu.github.io/proofweave/>
+There are two ways to use ProofWeave:
 
-All conversion runs locally in the browser or CLI. Proof text is not uploaded
-or saved by the application.
+- [In your browser](https://tshzhu.github.io/proofweave/)
+- [From the command line](#cli)
 
-## Supported input
+## Example
 
-The converter recognizes `theorem`, `lemma`, `proposition`, `corollary`,
-`assumption`, `definition`, and `remark` headings at any Markdown heading level.
-Nested `statement` and `proof` headings define the corresponding LaTeX blocks:
+Before:
 
+<!-- proofweave-example-input:start -->
 ```markdown
+# Part I -- A small estimate
+
+This example demonstrates headings, theorem environments, lists, and math.
+
 ## lemma uniform-noise
 
 ### statement
-For every \(x\in\mathcal X\), the estimate holds.
+
+For every \(x\in\mathcal X\),
+\[
+  |f(x)| \le C.
+\]
 
 ### proof
-The preceding bound proves the claim. \square
+
+By the preceding estimate, the claim follows. \square
+
+## proposition finite-sample
+
+### statement
+
+Assume $n \ge 1$. Then the estimator is well-defined.
+
+### proof
+
+The construction is deterministic, so the result follows.
+
+## A useful checklist
+
+- Keep the statement readable.
+- Preserve \(\mathcal X\) exactly.
+  - Nested items are supported.
+- Use a display when a formula deserves its own line.
 ```
+<!-- proofweave-example-input:end -->
 
-The output is body content rather than a complete document:
+After `proofweave proof.md` with the default options:
 
+<!-- proofweave-example-output:start -->
 ```latex
+\section*{Part I -- A small estimate}
+
+This example demonstrates headings, theorem environments, lists, and math.
+
 \begin{lemma}\label{lem:uniform-noise}
-  For every \(x\in\mathcal X\), the estimate holds.
+	For every $x \in \mathcal{X}$,
+	\begin{equation}
+		  | f(x) | \le C.
+	\end{equation}
 \end{lemma}
 
 \begin{proof}
-  The preceding bound proves the claim.
+	By the preceding estimate, the claim follows.
 \end{proof}
+
+\begin{proposition}\label{pro:finite-sample}
+	Assume $n \ge 1$. Then the estimator is well-defined.
+\end{proposition}
+
+\begin{proof}
+	The construction is deterministic, so the result follows.
+\end{proof}
+
+\subsection*{A useful checklist}
+
+\begin{itemize}
+	\item Keep the statement readable.
+	\item Preserve $\mathcal{X}$ exactly.
+		\begin{itemize}
+			\item Nested items are supported.
+		\end{itemize}
+	\item Use a display when a formula deserves its own line.
+\end{itemize}
 ```
+<!-- proofweave-example-output:end -->
 
-Proof-final `\\square` markers are removed automatically because LaTeX's
-`proof` environment supplies the QED symbol. Display-math bodies are indented
-according to the selected structure indentation, and any display containing a
-`\\tag{...}` or `\\tag*{...}` is emitted as an `equation` environment so the tag
-remains valid.
+This is LaTeX body content, not a complete document. The leading indentation
+above consists of tabs because `--indent=tab` is the default. The default
+formatter also normalizes math spacing, braces `\mathcal{X}`, uses `equation`
+inside statements, creates canonical labels, and removes the proof-final
+`\square` because LaTeX's `proof` environment supplies the QED symbol.
 
-Tagged equations receive owner-aware labels on the opening line. For example,
-`\\tag{10}` inside `\\label{thm:main}` becomes:
+<a name="cli"></a>
 
-```latex
-\begin{equation}\label{eqn:main-10}
-  ... \tag{10}
-\end{equation}
-```
+## CLI
 
-Confirmed plain-text references such as `(10)` become the matching
-`\\eqref{eqn:main-10}`; ambiguous or unknown numbers remain unchanged.
+The CLI and website use the same conversion core and options.
 
-Ordinary headings, paragraphs, nested ordered and unordered lists, inline math,
-display math, basic emphasis, and code spans are also supported. Diagnostics flag
-missing sections, duplicate labels, malformed math, and unsupported structures.
+### Requirements and installation
 
-## Options
+Node.js 22 or newer is required. ProofWeave is currently installed from source;
+the package is not published to the npm registry.
 
-- Structure indentation: a tab (default), 2 spaces, 4 spaces, or none.
-- Theme: light mode is the default on first visit; a saved dark/light choice is
-  restored automatically.
-- Inline math output: `$...$` (default) or `\(...\)`.
-- Statement display math: `$$...$$`, `\[...\]`, or `equation` (default).
-- Other display math, including proofs and ordinary body text: `$$...$$`,
-  `\[...\]` (default), or `equation`.
-- Section headings: unnumbered (default) or numbered. H1 maps to `section`, H2
-  to `subsection`, and H3 or deeper to `subsubsection`.
-- Math spacing: enabled by default, with independent controls for relations,
-  binary operators, punctuation (including colon spacing), compact
-  parentheses/function calls, paired bars, named functions, explicit braces
-  around single-atom math font commands (for example, `\\mathcal X` becomes
-  `\\mathcal{X}`), and collapsing repeated source spaces. The formatter adds
-  readable implicit-multiplication gaps, protects scripts and text/tag/label
-  arguments, and preserves explicit TeX spacing commands and comments.
-- Math references: inside math, `\\mathrm{lem:example}` is normalized to
-  `\\ref{lem:example}` for hyperref-compatible cross-references. Ordinary
-  `\\mathrm{R}` and text/tag/label arguments are left unchanged.
-- Labels use canonical three-letter prefixes: `thm`, `lem`, `pro`, `cor`,
-  `asm`, `def`, and `rmk`. Legacy aliases such as `prop:` and full prefixes
-  such as `proposition:` are normalized automatically.
-- Tagged equations: every display containing `\\tag{N}` gets a stable label
-  such as `\\label{eqn:main-N}` based on its theorem/proof owner (or
-  `background` outside theorem environments). Unambiguous plain-text `(N)`
-  references are converted to `\\eqref{...}`; unresolved or ambiguous numbers
-  are left unchanged.
-- Cleanup: `\\boxed{...}` wrappers are removed by default while preserving
-  their contents. Disable this in the website or with `--no-remove-boxed`.
-- Copy the result or download it as a `.tex` text file.
-
-The renderer keeps one blank line around structural blocks such as section
-headings, theorem/proof environments, and lists. Ordinary prose and display
-math use a single line break so the output remains compact while environment
-indentation stays readable.
-
-The interface follows BibTeX Tidy's editor-and-sidebar workflow. Edit Markdown
-in the full-height left pane, choose conversion options in the right sidebar,
-then switch to the generated LaTeX view with **View LaTeX**. The editor's Copy
-button copies whichever view is currently visible. Use the minus and plus
-buttons beside Copy to adjust editor text from 80% to 160%; the default is 100%
-with a 15px base size. Use the sun/moon button beside the ProofWeave heading to
-switch between the dark editor theme and the red-and-white light theme. Both
-preferences are kept locally in the browser. The GitHub button opens the source
-repository.
-
-Both editor views use syntax highlighting for their current language. While in
-the Markdown view, you can also drop one `.md` file onto the editor to replace
-the source and immediately switch to the generated LaTeX view. Other file types,
-multiple files, and all drops made in the LaTeX view are rejected without
-changing the current document.
-
-Tabs in the editor and its synchronized highlight layer are displayed at a
-four-space width; this changes visual alignment only, not the emitted LaTeX
-indentation option or the underlying tab characters.
-
-## Local development
-
-Node.js 22 or newer is required.
-
-```bash
+```sh
+git clone https://github.com/tshzhu/proofweave.git
+cd proofweave
 npm ci
-npm run dev
+npm run build
 ```
 
-## Command-line usage
+Run the repository-local executable:
 
-The CLI and website use the same conversion core and option model. Build the
-local executable, then run it directly or expose it on your `PATH` with
-`npm link`:
-
-```bash
-npm run build
+```sh
 ./bin/proofweave.js proof.md > proof.tex
+```
+
+Optionally register the `proofweave` command on your local `PATH`:
+
+```sh
 npm link
+proofweave --version
+```
+
+Re-run `npm run build` after changing the TypeScript source because the executable
+loads `dist-cli/proofweave.js`.
+
+### Usage
+
+```text
+Usage: proofweave [options] [FILE.md]
+```
+
+ProofWeave accepts at most one input file, and file input must have a `.md`
+extension. It writes conversion diagnostics to stderr, leaving stdout or the
+selected output file reserved for LaTeX. Invocation errors such as an unknown
+option, an invalid value, multiple input files, or a non-Markdown input return a
+non-zero exit status.
+
+### Input and output
+
+| Invocation | Behavior |
+| --- | --- |
+| `proofweave proof.md` | Read `proof.md` and write LaTeX to stdout. |
+| `proofweave` | Read Markdown from stdin and write LaTeX to stdout. |
+| `proofweave -` | Explicitly read Markdown from stdin. |
+| `proofweave -o proof.tex proof.md` | Write LaTeX to `proof.tex`. |
+| `proofweave --output proof.tex proof.md` | Long form of `-o`. |
+| `proofweave -m proof.md` | Replace the input file with LaTeX. |
+| `proofweave --modify proof.md` | Long form of `-m`. |
+| `proofweave -- --proof.md` | Stop option parsing and read a file whose name starts with `-`. |
+
+`--modify` is destructive: it overwrites the input `.md` file with generated
+LaTeX. It requires a real input file, cannot read stdin, and cannot be combined
+with `--output`.
+
+### General options
+
+| Option | Description |
+| --- | --- |
+| `--help`, `-h` | Print the complete CLI help and exit. |
+| `--version`, `-v` | Print the ProofWeave version and exit. |
+| `--output FILE`, `-o FILE` | Write LaTeX to `FILE` instead of stdout. |
+| `--modify`, `-m` | Overwrite the input `.md` file with LaTeX. |
+
+Value options accept either `--option=value` or `--option value`.
+
+### Conversion options
+
+| Option | Values and effect |
+| --- | --- |
+| `--indent=tab|2|4|0` | Structural indentation: a tab (default), 2 spaces, 4 spaces, or no indentation. |
+| `--inline-math=dollar|parentheses` | Emit `$...$` (default) or `\(...\)`. |
+| `--statement-display=dollars|brackets|equation` | Display math inside theorem statements: `equation` (default), `$$...$$`, or `\[...\]`. A display containing `\tag` is always forced to `equation`. |
+| `--other-display=dollars|brackets|equation` | Display math in proofs and ordinary text: `\[...\]` (default), `$$...$$`, or `equation`. A display containing `\tag` is always forced to `equation`. |
+| `--section-numbering=unnumbered|numbered` | Emit `\section*{...}`-style headings (default) or numbered section commands. |
+
+### Cleanup and math-spacing options
+
+Every option in this table is enabled by default. Both positive and negative
+forms are accepted, for example `--remove-boxed` and `--no-remove-boxed`.
+Math-spacing subrules are effective only while `--math-spacing` is enabled.
+
+| Option | Effect |
+| --- | --- |
+| `--[no-]remove-boxed` | Remove or preserve `\boxed{...}` wrappers while retaining their contents. |
+| `--[no-]math-spacing` | Enable or disable the math whitespace formatter as a whole. |
+| `--[no-]relations` | Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`. |
+| `--[no-]binary-operators` | Add consistent spaces around binary operators such as `+`, `-`, `*`, and `\times`, while protecting unary signs and scripts. |
+| `--[no-]punctuation` | Normalize spaces around commas, semicolons, and colons in math. |
+| `--[no-]compact-parentheses` | Keep delimiters and function calls compact, for example `f(x)` rather than `f ( x )`. |
+| `--[no-]paired-bars` | Normalize inner spacing for paired absolute-value and norm bars, for example `| x |`. |
+| `--[no-]named-functions` | Add the appropriate gap after functions such as `\sin`, `\log`, and `\exp`. |
+| `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
+| `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
+
+Regardless of the selected display style, a formula containing `\tag{N}` uses
+an `equation` environment and receives an owner-aware label such as
+`\label{eqn:main-N}`. Unambiguous plain-text references such as `(N)` become
+`\eqref{eqn:main-N}`. Math-styled theorem references such as
+`\mathrm{lem:example}` become `\ref{lem:example}`.
+
+### Command examples
+
+Write the default conversion to stdout:
+
+```sh
 proofweave proof.md > proof.tex
 ```
 
-With no input file (or with `-`), Markdown is read from stdin:
+Use stdin explicitly:
 
-```bash
-cat proof.md | proofweave --indent=4 --section-numbering=numbered > proof.tex
+```sh
+cat proof.md | proofweave - > proof.tex
 ```
 
-Use `--output/-o` to write another file or `--modify/-m` to overwrite the input:
+Write a separate output file:
 
-```bash
+```sh
 proofweave --output proof.tex proof.md
+```
+
+Overwrite the input file after reviewing the destructive behavior:
+
+```sh
 proofweave --modify proof.md
 ```
 
-Every conversion control in the website has a corresponding CLI option. Open
-the **CLI** section at the bottom of the sidebar to see the command for the
-current web configuration, or run `proofweave --help` for the complete
-list.
+Choose non-default delimiters, indentation, and numbered headings:
 
-Run the test suite and production build with:
+```sh
+proofweave \
+  --indent=4 \
+  --inline-math=parentheses \
+  --statement-display=brackets \
+  --other-display=dollars \
+  --section-numbering=numbered \
+  proof.md > proof.tex
+```
 
-```bash
+Preserve `\boxed{...}` and turn off selected spacing rules:
+
+```sh
+proofweave \
+  --no-remove-boxed \
+  --no-paired-bars \
+  --no-collapse-spaces \
+  proof.md > proof.tex
+```
+
+Disable all optional math whitespace formatting:
+
+```sh
+proofweave --no-math-spacing proof.md > proof.tex
+```
+
+### Exit behavior
+
+- `--help` and `--version` exit successfully without reading input.
+- Successful conversion returns status 0. Conversion diagnostics are printed to
+  stderr and do not contaminate stdout.
+- Invalid invocations return status 1 and print a short error plus the
+  `proofweave --help` hint.
+- `--modify` requires a file and is mutually exclusive with `--output`.
+
+<a name="browser"></a>
+
+## Browser
+
+Open <https://tshzhu.github.io/proofweave/>. Paste or drop one Markdown file into
+the editor, select conversion options in the sidebar, and switch to the generated
+LaTeX view. The browser and CLI expose the same conversion settings, and the
+sidebar's **CLI** section shows the command corresponding to the current options.
+
+The browser also provides syntax highlighting, diagnostics, copy/download
+actions, 80%–160% editor text zoom, and persistent light/dark theme selection.
+Conversion runs entirely in the browser.
+
+## Supported input and output
+
+ProofWeave recognizes `theorem`, `lemma`, `proposition`, `corollary`,
+`assumption`, `definition`, and `remark` headings at any Markdown heading level.
+Nested `statement` and `proof` headings produce the corresponding LaTeX
+environments. Labels use canonical prefixes `thm`, `lem`, `pro`, `cor`, `asm`,
+`def`, and `rmk`.
+
+Ordinary headings, paragraphs, ordered and unordered nested lists, inline math,
+display math, basic emphasis, and code spans are supported. Proof-final
+`\square` markers are removed automatically. Tagged equations receive stable
+labels and unambiguous references are converted to `\eqref`.
+
+The output is embeddable LaTeX body content. ProofWeave does not add
+`\documentclass`, package imports, theorem declarations, or
+`\begin{document}`/`\end{document}`.
+
+## Development
+
+```sh
+npm ci
+npm run dev
 npm test
 npm run check
 npm run build
-npm run preview
+npm run preview -- --port 4173
 ```
+
+- `npm run dev` starts the Vite development server.
+- `npm test` runs the converter, CLI, UI, and documentation tests.
+- `npm run check` performs TypeScript type checking.
+- `npm run build` creates the website in `dist/` and the CLI bundle in
+  `dist-cli/`.
+- `npm run preview -- --port 4173` serves the production website locally.
 
 ## License
 
-MIT
+[MIT](LICENSE)
