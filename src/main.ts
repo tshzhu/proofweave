@@ -61,6 +61,13 @@ let options: ConverterOptions = cloneConverterOptions(DEFAULT_CONVERTER_OPTIONS)
 let latestResult: ConversionResult = { latex: '', diagnostics: [] }
 let copyResetTimer: number | undefined
 let dragDepth = 0
+let pendingEditorFrame: number | undefined
+let lastLineNumberText = ''
+let lastHighlightedText = ''
+let lastHighlightedView: EditorView | undefined
+let lastDiagnosticsKey = ''
+let lastCLICommand = ''
+let lastStatsKey = ''
 type Theme = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'proofweave-theme'
 const EDITOR_ZOOM_STORAGE_KEY = 'proofweave-editor-zoom'
@@ -142,13 +149,23 @@ function currentText(): string {
 
 function updateLineNumbers(): void {
   const text = currentText()
+  if (text === lastLineNumberText && lineNumbers.textContent) {
+    lineNumbers.parentElement?.scrollTo({ top: editor.scrollTop })
+    return
+  }
   const lineCount = Math.max(1, text.split('\n').length)
   lineNumbers.textContent = Array.from({ length: lineCount }, (_, index) => String(index + 1)).join('\n')
+  lastLineNumberText = text
   lineNumbers.parentElement?.scrollTo({ top: editor.scrollTop })
 }
 
 function updateHighlight(): void {
-  highlightOutput.innerHTML = highlightCode(currentText(), view)
+  const text = currentText()
+  if (text !== lastHighlightedText || view !== lastHighlightedView) {
+    highlightOutput.innerHTML = highlightCode(text, view)
+    lastHighlightedText = text
+    lastHighlightedView = view
+  }
   highlightLayer.scrollTop = editor.scrollTop
   highlightLayer.scrollLeft = editor.scrollLeft
 }
@@ -160,6 +177,9 @@ function syncEditorScroll(): void {
 }
 
 function renderDiagnostics(diagnostics: Diagnostic[]): void {
+  const key = diagnostics.map(({ severity, code, message, line }) => `${severity}|${code}|${line ?? ''}|${message}`).join('\u0000')
+  if (key === lastDiagnosticsKey) return
+  lastDiagnosticsKey = key
   diagnosticsList.replaceChildren()
 
   if (!diagnostics.length) {
@@ -188,6 +208,9 @@ function renderDiagnostics(diagnostics: Diagnostic[]): void {
 }
 
 function renderCLICommand(): void {
+  const command = cliCommand(options)
+  if (command === lastCLICommand) return
+  lastCLICommand = command
   cliCommandOutput.replaceChildren()
   cliCommandOutput.append('proofweave ')
   for (const argument of optionsToCLIArgs(options)) {
@@ -206,10 +229,13 @@ function renderCLICommand(): void {
     cliCommandOutput.append(' ')
   }
   cliCommandOutput.append('YOUR_FILE.md')
-  cliCommandOutput.dataset.command = cliCommand(options)
+  cliCommandOutput.dataset.command = command
 }
 
 function updateStats(): void {
+  const key = `${source.length}|${latestResult.latex.length}|${latestResult.diagnostics.length}`
+  if (key === lastStatsKey) return
+  lastStatsKey = key
   const inputCount = source.length.toLocaleString()
   const outputCount = latestResult.latex.length.toLocaleString()
   const diagnosticCount = latestResult.diagnostics.length.toLocaleString()
@@ -252,6 +278,25 @@ function convert(): void {
   if (view === 'latex') renderEditor()
 }
 
+function flushScheduledEditorUpdate(): void {
+  if (pendingEditorFrame === undefined) return
+  window.cancelAnimationFrame(pendingEditorFrame)
+  pendingEditorFrame = undefined
+  updateLineNumbers()
+  updateHighlight()
+  convert()
+}
+
+function scheduleEditorUpdate(): void {
+  if (pendingEditorFrame !== undefined) return
+  pendingEditorFrame = window.requestAnimationFrame(() => {
+    pendingEditorFrame = undefined
+    updateLineNumbers()
+    updateHighlight()
+    convert()
+  })
+}
+
 function setCheckedRadio(name: string, value: string): void {
   const input = optionsForm.querySelector<HTMLInputElement>(`input[name="${name}"][value="${value}"]`)
   if (input) input.checked = true
@@ -264,6 +309,7 @@ function updateMathSpacingControls(): void {
 }
 
 function setView(nextView: EditorView): void {
+  flushScheduledEditorUpdate()
   view = nextView
   setCheckedRadio('view', view)
   editor.scrollTop = 0
@@ -348,10 +394,8 @@ async function copyText(text: string): Promise<void> {
 editor.addEventListener('input', () => {
   if (view !== 'markdown') return
   source = editor.value
-  updateLineNumbers()
-  updateHighlight()
   clearFileMessage()
-  convert()
+  scheduleEditorUpdate()
 })
 
 editor.addEventListener('scroll', () => {
@@ -412,6 +456,7 @@ editor.addEventListener('keydown', (event) => {
 optionsForm.addEventListener('change', (event) => {
   const target = event.target
   if (!(target instanceof HTMLInputElement)) return
+  flushScheduledEditorUpdate()
 
   if (target.type === 'checkbox') {
     if (target.name === 'mathSpacingEnabled') {

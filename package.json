@@ -21,6 +21,7 @@
     "build": "npm run check && npm run build:web && npm run build:cli",
     "build:web": "vite build",
     "build:cli": "vite build --config vite.cli.config.ts",
+    "benchmark": "node --experimental-strip-types scripts/benchmark.ts",
     "check": "tsc --noEmit",
     "cli": "node --experimental-strip-types src/cli.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts",

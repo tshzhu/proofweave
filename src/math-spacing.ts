@@ -338,6 +338,7 @@ function singleFontAtomEnd(value: string, start: number): number | undefined {
 }
 
 function braceFontCommandArguments(value: string): string {
+  if (!value.includes('\\')) return value
   let result = ''
   for (let index = 0; index < value.length;) {
     if (value[index] !== '\\') {
@@ -916,6 +917,7 @@ function normalizeReferenceLine(value: string, normalizeLabelPrefixes: boolean):
 }
 
 function normalizeMathReferences(value: string, normalizeLabelPrefixes: boolean): string {
+  if (!value.includes('\\')) return value
   return value.split('\n').map((line) => normalizeReferenceLine(line, normalizeLabelPrefixes)).join('\n')
 }
 
@@ -978,9 +980,10 @@ export function formatMathSpacing(
   options: MathSpacingOptions = DEFAULT_MATH_SPACING_OPTIONS,
   cleanup: MathCleanupOptions = DEFAULT_MATH_CLEANUP_OPTIONS,
 ): string {
+  if (value.length === 0) return value
+  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_]/.test(value)) return value
   const referenced = normalizeMathReferences(value, cleanup.normalizeLabelPrefixes)
   const normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
-  if (normalized.length === 0) return normalized
   if (!options.enabled) {
     return cleanup.collapseSpaces
       ? normalized.split('\n').map(collapseMathSpacesOnly).join('\n')

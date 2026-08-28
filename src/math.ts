@@ -54,11 +54,14 @@ function normalizeMathBody(
   spacing: MathSpacingOptions,
   cleanup: MathCleanupOptions & { removeBoxed: boolean },
 ): string {
-  const cleaned = cleanup.removeBoxed ? removeBoxedCommands(value) : value;
+  const cleaned = cleanup.removeBoxed && value.includes("\\boxed")
+    ? removeBoxedCommands(value)
+    : value;
   return formatMathSpacing(cleaned, spacing, cleanup);
 }
 
 function escapePlainText(value: string): string {
+  if (!/[&%$#_{}~^]/.test(value)) return value;
   return value.replace(/[&%$#_{}~^]/g, (character) => {
     if (character === "~") return "\\textasciitilde{}";
     if (character === "^") return "\\textasciicircum{}";
@@ -67,6 +70,7 @@ function escapePlainText(value: string): string {
 }
 
 function escapeCodeText(value: string): string {
+  if (!/[\\&%$#_{}~^]/.test(value)) return value;
   return value.replace(/[\\&%$#_{}~^]/g, (character) => {
     if (character === "\\") return "\\textbackslash{}";
     if (character === "~") return "\\textasciitilde{}";
@@ -119,19 +123,35 @@ function renderMarkdownText(
   transformPlain?: (value: string) => string,
 ): string {
   let output = "";
-  let plain = "";
-  const flush = () => {
-    const escaped = escapePlainText(plain);
+  let plainStart = 0;
+  const flush = (end: number) => {
+    if (end === plainStart) return;
+    const escaped = escapePlainText(value.slice(plainStart, end));
     output += transformPlain ? transformPlain(escaped) : escaped;
-    plain = "";
+    plainStart = end;
   };
 
   for (let index = 0; index < value.length; ) {
+    let nextSpecial = value.length;
+    for (const marker of ['\\', '`', '*', '[']) {
+      const position = value.indexOf(marker, index);
+      if (position >= 0 && position < nextSpecial) nextSpecial = position;
+    }
+    if (nextSpecial === value.length) {
+      index = value.length;
+      continue;
+    }
+    if (nextSpecial > index) {
+      index = nextSpecial;
+      continue;
+    }
+
     if (value[index] === "\\") {
-      flush();
+      flush(index);
       const end = consumeLatexCommand(value, index);
       output += value.slice(index, end);
       index = end;
+      plainStart = index;
       continue;
     }
 
@@ -144,13 +164,13 @@ function renderMarkdownText(
           message: "An unclosed code span was preserved as text.",
           line,
         });
-        plain += value[index];
         index += 1;
         continue;
       }
-      flush();
+      flush(index);
       output += `\\texttt{${escapeCodeText(value.slice(index + 1, close))}}`;
       index = close + 1;
+      plainStart = index;
       continue;
     }
 
@@ -158,7 +178,7 @@ function renderMarkdownText(
     if (emphasis) {
       const close = value.indexOf(emphasis, index + emphasis.length);
       if (close >= 0) {
-        flush();
+        flush(index);
         const body = renderMarkdownText(
           value.slice(index + emphasis.length, close),
           diagnostics,
@@ -167,6 +187,7 @@ function renderMarkdownText(
         );
         output += emphasis === "**" ? `\\textbf{${body}}` : `\\textit{${body}}`;
         index = close + emphasis.length;
+        plainStart = index;
         continue;
       }
     }
@@ -174,7 +195,7 @@ function renderMarkdownText(
     if (value[index] === "[" ) {
       const link = value.slice(index).match(/^\[([^\]]+)]\(([^)]+)\)/);
       if (link) {
-        flush();
+        flush(index);
         output += `${renderMarkdownText(link[1]!, diagnostics, line, transformPlain)} (${escapePlainText(link[2]!)})`;
         diagnostics.push({
           severity: "warning",
@@ -183,14 +204,14 @@ function renderMarkdownText(
           line,
         });
         index += link[0].length;
+        plainStart = index;
         continue;
       }
     }
 
-    plain += value[index];
     index += 1;
   }
-  flush();
+  flush(value.length);
   return output;
 }
 

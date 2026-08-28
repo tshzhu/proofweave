@@ -63,6 +63,13 @@ test('provides bounded editor text zoom beside the copy action', () => {
   assert.match(main, /localStorage\.setItem\(EDITOR_ZOOM_STORAGE_KEY, String\(editorZoomPercent\)\)/)
   assert.match(main, /applyEditorZoom\(readStoredEditorZoom\(\), false\)/)
   assert.match(main, /function applyEditorZoom[\s\S]*syncEditorScroll\(\)/)
+  assert.match(main, /requestAnimationFrame/)
+  assert.match(main, /pendingEditorFrame/)
+  assert.match(main, /lastHighlightedText/)
+  assert.match(main, /lastLineNumberText/)
+  assert.match(main, /lastDiagnosticsKey/)
+  assert.match(main, /lastCLICommand/)
+  assert.match(main, /lastStatsKey/)
 })
 
 test('aligns the theme toggle with the heading and includes a GitHub action', () => {
@@ -168,7 +175,8 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
   assert.ok(html.indexOf('<summary>CLI</summary>') < html.indexOf('</form>'))
   assert.match(main, /function renderCLICommand\(\)/)
   assert.match(main, /optionsToCLIArgs\(options\)/)
-  assert.match(main, /cliCommandOutput\.dataset\.command = cliCommand\(options\)/)
+  assert.match(main, /const command = cliCommand\(options\)/)
+  assert.match(main, /cliCommandOutput\.dataset\.command = command/)
   assert.match(optionsSource, /export function optionsToCLIArgs/)
   assert.match(optionsSource, /export function parseCLIArguments/)
 })

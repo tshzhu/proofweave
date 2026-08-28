@@ -67,62 +67,43 @@ function ownerFromLabel(label: string | undefined): string {
   return normalizeEquationComponent(separator < 0 ? label : label.slice(separator + 1)) || "background";
 }
 
-function collectEquations(
-  blocks: Block[],
-  owner: string,
-  registry: EquationRegistry,
-): void {
-  for (const block of blocks) {
-    if (block.type === "display-math") {
-      const rawTag = tagValue(block.body);
-      if (!rawTag) continue;
-      const tag = normalizeEquationComponent(rawTag);
-      if (!tag) continue;
-      const base = `eqn:${owner}-${tag}`;
-      const local = registry.byOwnerAndTag.get(equationKey(owner, rawTag)) ?? [];
-      const record: EquationRecord = {
-        block,
-        label: local.length === 0 ? base : `${base}-${local.length + 1}`,
-        owner,
-        tag: rawTag,
-        unique: true,
-      };
-      local.push(record);
-      registry.byOwnerAndTag.set(equationKey(owner, rawTag), local);
-      const global = registry.byTag.get(rawTag) ?? [];
-      global.push(record);
-      registry.byTag.set(rawTag, global);
-      registry.byBlock.set(block, record);
-      continue;
-    }
-    if (block.type === "list") {
-      for (const item of block.items) collectEquations(item.blocks, owner, registry);
-    } else if (block.type === "theorem") {
-      // Nested theorem environments own their own equations and are collected separately.
-      continue;
-    }
-  }
-}
-
 function indexDocument(ast: DocumentAst, context: RenderContext): void {
-  const registerTheorems = (blocks: Block[]): void => {
+  const walk = (blocks: Block[], owner: string): void => {
     for (const block of blocks) {
-      if (block.type === "theorem") {
+      if (block.type === "display-math") {
+        const rawTag = tagValue(block.body);
+        if (!rawTag) continue;
+        const tag = normalizeEquationComponent(rawTag);
+        if (!tag) continue;
+        const base = `eqn:${owner}-${tag}`;
+        const key = equationKey(owner, rawTag);
+        const local = context.equations.byOwnerAndTag.get(key) ?? [];
+        const record: EquationRecord = {
+          block,
+          label: local.length === 0 ? base : `${base}-${local.length + 1}`,
+          owner,
+          tag: rawTag,
+          unique: true,
+        };
+        local.push(record);
+        context.equations.byOwnerAndTag.set(key, local);
+        const global = context.equations.byTag.get(rawTag) ?? [];
+        global.push(record);
+        context.equations.byTag.set(rawTag, global);
+        context.equations.byBlock.set(block, record);
+      } else if (block.type === "theorem") {
         const labelResult = context.labels.create(block.kind, block.identifier, block.line);
         context.diagnostics.push(...labelResult.diagnostics);
         context.theoremLabels.set(block, labelResult.label);
-        const owner = ownerFromLabel(labelResult.label);
-        collectEquations(block.statement, owner, context.equations);
-        if (block.proof) collectEquations(block.proof, owner, context.equations);
-        registerTheorems(block.statement);
-        if (block.proof) registerTheorems(block.proof);
+        const theoremOwner = ownerFromLabel(labelResult.label);
+        walk(block.statement, theoremOwner);
+        if (block.proof) walk(block.proof, theoremOwner);
       } else if (block.type === "list") {
-        for (const item of block.items) registerTheorems(item.blocks);
+        for (const item of block.items) walk(item.blocks, owner);
       }
     }
   };
-  collectEquations(ast.blocks, "background", context.equations);
-  registerTheorems(ast.blocks);
+  walk(ast.blocks, "background");
 
   for (const records of context.equations.byOwnerAndTag.values()) {
     if (records.length < 2) continue;
@@ -344,19 +325,16 @@ function renderBlocks(
   mode: RenderBlockMode = "top-level",
   owner = "background",
 ): string {
-  const rendered: Array<{ block: Block; value: string }> = [];
+  let result = "";
+  let previous: Block | undefined;
   for (const block of blocks) {
     const value = renderBlock(block, context, scope, owner);
-    if (value) rendered.push({ block, value });
+    if (!value) continue;
+    if (previous) result += blockSeparator(previous, block, mode);
+    result += value;
+    previous = block;
   }
-  return rendered
-    .map(({ value }) => value)
-    .reduce((result, value, index) => {
-      if (index === 0) return value;
-      const previous = rendered[index - 1]!.block;
-      const next = rendered[index]!.block;
-      return `${result}${blockSeparator(previous, next, mode)}${value}`;
-    }, "");
+  return result;
 }
 
 export function renderLatex(
