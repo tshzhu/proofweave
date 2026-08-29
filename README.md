@@ -312,6 +312,11 @@ display math, bold, `*italic*` → `\textit{...}`, and code spans are supported.
 `\square` markers are removed automatically. Tagged equations receive stable
 labels and unambiguous references are converted to `\eqref`.
 
+Fenced code blocks are preserved as readable text and reported with a diagnostic;
+their headings and HTML-comment-looking lines are not parsed as document structure.
+HTML comments outside code are emitted as line-by-line LaTeX comments, with the
+marker-only edge lines removed.
+
 The output is embeddable LaTeX body content. ProofWeave does not add
 `\documentclass`, package imports, theorem declarations, or
 `\begin{document}`/`\end{document}`.

@@ -150,6 +150,55 @@ The actual proof follows.
   assert.equal((result.latex.match(/\\section|\\subsection|\\subsubsection/g) ?? []).length, 0)
 })
 
+test('does not parse HTML comment markers inside fenced or inline code', () => {
+  const result = convertMarkdown(`Before.
+
+\`<!-- inline literal -->\`
+
+\`\`\`markdown
+<!-- fenced literal -->
+## also literal
+\`\`\`
+
+After.`)
+
+  assert.equal(result.diagnostics.filter(({ code }) => code === 'unclosed-comment').length, 0)
+  assert.equal(result.diagnostics.filter(({ code }) => code === 'fenced-code').length, 1)
+  assert.match(result.latex, /\\texttt\{<!-- inline literal -->\}/)
+  assert.match(result.latex, /<!-- fenced literal --> \\#\\# also literal/)
+  assert.doesNotMatch(result.latex, /% fenced literal|% ## also literal/)
+})
+
+test('keeps comments inside list items in the list item', () => {
+  const result = convertMarkdown(`- Visible item <!-- hidden -->
+- Next item`)
+  assert.equal(result.diagnostics.length, 0)
+  assert.match(result.latex, /\\item Visible item/)
+  assert.match(result.latex, /%  hidden/)
+  assert.equal((result.latex.match(/\\begin\{itemize\}/g) ?? []).length, 1)
+  assert.equal((result.latex.match(/\\item/g) ?? []).length, 2)
+})
+
+test('does not let fenced headings or comments close a theorem', () => {
+  const result = convertMarkdown(`## lemma fenced-boundary
+
+### statement
+Claim.
+
+\`\`\`markdown
+### proof
+<!-- not a proof -->
+\`\`\`
+
+### proof
+Actual proof.`)
+
+  assert.equal(result.diagnostics.filter(({ code }) => code === 'missing-proof').length, 0)
+  assert.equal((result.latex.match(/\\begin\{proof\}/g) ?? []).length, 1)
+  assert.match(result.latex, /\\begin\{proof\}\n\tActual proof\./)
+  assert.doesNotMatch(result.latex, /% not a proof/)
+})
+
 test('trims only comment-edge blank lines and separates adjacent comment blocks', () => {
   const result = convertMarkdown(`Before.
 <!--
