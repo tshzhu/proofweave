@@ -169,6 +169,16 @@ After.`)
   assert.doesNotMatch(result.latex, /% fenced literal|% ## also literal/)
 })
 
+test('keeps comments inside list items in the list item', () => {
+  const result = convertMarkdown(`- Visible item <!-- hidden -->
+- Next item`)
+  assert.equal(result.diagnostics.length, 0)
+  assert.match(result.latex, /\\item Visible item/)
+  assert.match(result.latex, /%  hidden/)
+  assert.equal((result.latex.match(/\\begin\{itemize\}/g) ?? []).length, 1)
+  assert.equal((result.latex.match(/\\item/g) ?? []).length, 2)
+})
+
 test('does not let fenced headings or comments close a theorem', () => {
   const result = convertMarkdown(`## lemma fenced-boundary
 

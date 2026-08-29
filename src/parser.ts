@@ -621,16 +621,6 @@ function parseRange(
       continue;
     }
 
-    const commentMarker = markdownCommentMarker(currentLine.text);
-    const parsedComment = commentMarker >= 0
-      ? parseComment(lines, cursor, end, diagnostics, allowTheorems, commentMarker)
-      : undefined;
-    if (parsedComment) {
-      blocks.push(...parsedComment.blocks);
-      cursor = parsedComment.next;
-      continue;
-    }
-
     const matchedHeading = heading(currentLine.text);
     const matchedTheorem = matchedHeading ? theoremHeading(matchedHeading) : undefined;
     if (allowTheorems && matchedTheorem) {
@@ -651,7 +641,6 @@ function parseRange(
       continue;
     }
 
-
     const parsedDisplay = parseDisplayMath(lines, cursor, end, diagnostics);
     if (parsedDisplay) {
       blocks.push(parsedDisplay.block);
@@ -664,6 +653,16 @@ function parseRange(
       const parsed = parseList(lines, cursor, end, diagnostics);
       blocks.push(parsed.block);
       cursor = parsed.next;
+      continue;
+    }
+
+    const commentMarker = markdownCommentMarker(currentLine.text);
+    const parsedComment = commentMarker >= 0
+      ? parseComment(lines, cursor, end, diagnostics, allowTheorems, commentMarker)
+      : undefined;
+    if (parsedComment) {
+      blocks.push(...parsedComment.blocks);
+      cursor = parsedComment.next;
       continue;
     }
 
