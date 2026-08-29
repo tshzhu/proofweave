@@ -130,6 +130,45 @@ function listMarker(line: string): ListMarker | undefined {
   };
 }
 
+/**
+ * Find an HTML-comment opener outside the simple inline-code spans supported
+ * by the converter.  A marker inside backticks is literal Markdown text.
+ */
+function markdownCommentMarker(value: string): number {
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] === "`") {
+      const close = value.indexOf("`", index + 1);
+      if (close >= 0) {
+        index = close;
+        continue;
+      }
+      // An unmatched backtick is preserved as text; do not treat anything
+      // after it as an HTML comment marker on the same line.
+      return -1;
+    }
+    if (value.startsWith("<!--", index)) return index;
+  }
+  return -1;
+}
+
+function fencedCodeRange(
+  lines: SourceLine[],
+  start: number,
+  end: number,
+): { contentEnd: number; next: number } {
+  const opener = lineAt(lines, start).text.trim().slice(0, 3);
+  for (let cursor = start + 1; cursor < end; cursor += 1) {
+    if (lineAt(lines, cursor).text.trim().startsWith(opener)) {
+      return { contentEnd: cursor, next: cursor + 1 };
+    }
+  }
+  return { contentEnd: end, next: end };
+}
+
+function fencedCodeEnd(lines: SourceLine[], start: number, end: number): number {
+  return fencedCodeRange(lines, start, end).next;
+}
+
 function lineAt(lines: SourceLine[], index: number): SourceLine {
   const line = lines[index];
   if (!line) throw new RangeError(`Source line ${index} is outside the parser range.`);
@@ -410,7 +449,11 @@ function parseTheorem(
   let proofMarker: { index: number; name: "proof" } | undefined;
   let cursor = start + 1;
   while (cursor < end) {
-    const commentMarker = lineAt(lines, cursor).text.indexOf("<!--");
+    if (/^\s*(```|~~~)/.test(lineAt(lines, cursor).text)) {
+      cursor = fencedCodeEnd(lines, cursor, end);
+      continue;
+    }
+    const commentMarker = markdownCommentMarker(lineAt(lines, cursor).text);
     if (commentMarker >= 0) {
       cursor = commentEnd(lines, cursor, end, commentMarker);
       continue;
@@ -446,6 +489,10 @@ function parseTheorem(
   if (proofMarker) {
     boundary = proofMarker.index + 1;
     while (boundary < end) {
+      if (/^\s*(```|~~~)/.test(lineAt(lines, boundary).text)) {
+        boundary = fencedCodeEnd(lines, boundary, end);
+        continue;
+      }
       const candidate = heading(lineAt(lines, boundary).text);
       if (candidate && candidate.level <= theoremLevel) break;
       boundary += 1;
@@ -529,7 +576,7 @@ function parseTheorem(
 
 function isBlockStart(lines: SourceLine[], index: number, allowTheorems: boolean): boolean {
   const value = lineAt(lines, index).text;
-  if (value.includes("<!--")) return true;
+  if (markdownCommentMarker(value) >= 0) return true;
   const matchedHeading = heading(value);
   if (matchedHeading) return true;
   if (listMarker(value)) return true;
@@ -555,7 +602,26 @@ function parseRange(
       continue;
     }
 
-    const commentMarker = currentLine.text.indexOf("<!--");
+    if (/^\s*(```|~~~)/.test(currentLine.text)) {
+      const firstLine = currentLine.number;
+      const fenceStart = cursor;
+      const range = fencedCodeRange(lines, fenceStart, end);
+      cursor = range.next;
+      diagnostics.push({
+        severity: "warning",
+        code: "fenced-code",
+        message: "Fenced code is outside the supported proof subset and was preserved as readable text.",
+        line: firstLine,
+      });
+      blocks.push({
+        type: "paragraph",
+        line: firstLine,
+        text: lines.slice(fenceStart + 1, range.contentEnd).map((line) => line.text).join(" "),
+      });
+      continue;
+    }
+
+    const commentMarker = markdownCommentMarker(currentLine.text);
     const parsedComment = commentMarker >= 0
       ? parseComment(lines, cursor, end, diagnostics, allowTheorems, commentMarker)
       : undefined;
