@@ -747,11 +747,17 @@ code {
   gap: 8px;
 }
 
-.share-field textarea {
+.share-field > textarea,
+.share-field > #cli-command {
   width: 100%;
+  min-width: 0;
+}
+
+.share-field textarea {
   min-height: 52px;
   padding: 10px;
   resize: vertical;
+  overflow: auto;
   overflow-wrap: anywhere;
   color: var(--light2);
   font: var(--mono-normal);
@@ -760,7 +766,6 @@ code {
 
 #cli-command {
   display: block;
-  min-width: 0;
   padding: 10px;
   overflow-wrap: anywhere;
   color: var(--light2);
