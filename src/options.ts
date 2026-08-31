@@ -105,20 +105,17 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (!options.cleanup.fontCommandBraces) args.push("--no-font-command-braces");
   if (!options.cleanup.collapseSpaces) args.push("--no-collapse-spaces");
 
-  if (!options.mathSpacing.enabled) {
-    args.push("--no-math-spacing");
-  } else {
-    const ruleFlags: Readonly<Record<MathSpacingRule, string>> = {
-      relations: "relations",
-      binaryOperators: "binary-operators",
-      punctuation: "punctuation",
-      compactParentheses: "compact-parentheses",
-      pairedBars: "paired-bars",
-      namedFunctions: "named-functions",
-    };
-    for (const rule of MATH_SPACING_RULES) {
-      if (!options.mathSpacing[rule]) args.push(`--no-${ruleFlags[rule]}`);
-    }
+  if (!options.mathSpacing.enabled) args.push("--no-math-spacing");
+  const ruleFlags: Readonly<Record<MathSpacingRule, string>> = {
+    relations: "relations",
+    binaryOperators: "binary-operators",
+    punctuation: "punctuation",
+    compactParentheses: "compact-parentheses",
+    pairedBars: "paired-bars",
+    namedFunctions: "named-functions",
+  };
+  for (const rule of MATH_SPACING_RULES) {
+    if (!options.mathSpacing[rule]) args.push(`--no-${ruleFlags[rule]}`);
   }
   return args;
 }
@@ -128,6 +125,79 @@ export function cliCommand(
   inputPath = "YOUR_FILE.md",
 ): string {
   return [CLI_NAME, ...optionsToCLIArgs(options), inputPath].join(" ");
+}
+
+export const OPTIONS_URL_PARAMETER = "opt";
+export const OPTIONS_URL_VERSION = 1;
+
+interface OptionsUrlPayload {
+  v: number;
+  args: string[];
+}
+
+export function optionsToUrlSearch(options: Readonly<ConverterOptions>): string {
+  const payload: OptionsUrlPayload = {
+    v: OPTIONS_URL_VERSION,
+    args: optionsToCLIArgs(options),
+  };
+  const search = new URLSearchParams();
+  if (payload.args.length > 0) {
+    search.set(OPTIONS_URL_PARAMETER, JSON.stringify(payload));
+  }
+  return search.toString();
+}
+
+export function shareUrlForOptions(
+  currentHref: string,
+  options: Readonly<ConverterOptions>,
+): string {
+  const url = new URL(currentHref);
+  url.searchParams.delete(OPTIONS_URL_PARAMETER);
+  const encoded = optionsToUrlSearch(options);
+  if (encoded) {
+    const value = new URLSearchParams(encoded).get(OPTIONS_URL_PARAMETER);
+    if (value !== null) url.searchParams.set(OPTIONS_URL_PARAMETER, value);
+  }
+  return url.href;
+}
+
+export function optionsFromUrlSearch(search: string): {
+  options: ConverterOptions;
+  error?: string;
+} {
+  const options = cloneConverterOptions();
+  const encoded = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)
+    .get(OPTIONS_URL_PARAMETER);
+  if (!encoded) return { options };
+
+  try {
+    const payload = JSON.parse(encoded) as unknown;
+    if (!payload || typeof payload !== "object") throw new Error("payload must be an object");
+    const candidate = payload as Partial<OptionsUrlPayload>;
+    if (candidate.v !== OPTIONS_URL_VERSION) throw new Error(`unsupported version ${String(candidate.v)}`);
+    if (!Array.isArray(candidate.args) || !candidate.args.every((value) => typeof value === "string")) {
+      throw new Error("args must be an array of strings");
+    }
+    if (candidate.args.some((argument) => argument === "--" || !argument.startsWith("--"))) {
+      throw new Error("args must contain long conversion options only");
+    }
+    if (candidate.args.some((argument) => ["--help", "-h", "--version", "-v", "--modify", "-m", "--output", "-o"].includes(argument))) {
+      throw new Error("I/O and process flags are not allowed");
+    }
+    const parsed = parseCLIArguments(candidate.args);
+    if (parsed.inputPath || parsed.outputPath || parsed.modify || parsed.help || parsed.version) {
+      throw new Error("only conversion options are allowed");
+    }
+    if (JSON.stringify(optionsToCLIArgs(parsed.options)) !== JSON.stringify(candidate.args)) {
+      throw new Error("args are not in the canonical ProofWeave order");
+    }
+    return { options: parsed.options };
+  } catch (error) {
+    return {
+      options,
+      error: `Could not restore URL options: ${error instanceof Error ? error.message : String(error)}. Using defaults.`,
+    };
+  }
 }
 
 function parseValue<T extends string>(

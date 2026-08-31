@@ -13,6 +13,9 @@ import {
   isCleanupRule,
   isMathSpacingRule,
   optionsToCLIArgs,
+  optionsFromUrlSearch,
+  optionsToUrlSearch,
+  shareUrlForOptions,
   type ConverterOptions,
 } from './options.ts'
 import {
@@ -55,6 +58,9 @@ const downloadOutput = requireElement<HTMLButtonElement>('#download-output')
 const copyStatus = requireElement<HTMLElement>('#copy-status')
 const fileMessage = requireElement<HTMLElement>('#editor-file-message')
 const cliCommandOutput = requireElement<HTMLElement>('#cli-command')
+const urlCommandOutput = requireElement<HTMLTextAreaElement>('#url-command')
+const cliCopy = requireElement<HTMLButtonElement>('#cli-copy')
+const urlCopy = requireElement<HTMLButtonElement>('#url-copy')
 
 let view: EditorView = 'markdown'
 let source = EXAMPLE_MARKDOWN
@@ -70,6 +76,7 @@ let lastHighlightedText = ''
 let lastHighlightedView: EditorView | undefined
 let lastDiagnosticsKey = ''
 let lastCLICommand = ''
+let lastShareUrl = ''
 let lastStatsKey = ''
 type Theme = 'dark' | 'light'
 const THEME_STORAGE_KEY = 'proofweave-theme'
@@ -212,27 +219,35 @@ function renderDiagnostics(diagnostics: Diagnostic[]): void {
 
 function renderCLICommand(): void {
   const command = cliCommand(options)
-  if (command === lastCLICommand) return
-  lastCLICommand = command
-  cliCommandOutput.replaceChildren()
-  cliCommandOutput.append('proofweave ')
-  for (const argument of optionsToCLIArgs(options)) {
-    const separator = argument.indexOf('=')
-    const optionName = document.createElement('span')
-    optionName.className = 'cli-option-name'
-    optionName.textContent = separator < 0 ? argument : argument.slice(0, separator)
-    cliCommandOutput.append(optionName)
-    if (separator >= 0) {
-      cliCommandOutput.append('=')
-      const optionValue = document.createElement('span')
-      optionValue.className = 'cli-option-value'
-      optionValue.textContent = argument.slice(separator + 1)
-      cliCommandOutput.append(optionValue)
+  if (command !== lastCLICommand) {
+    lastCLICommand = command
+    cliCommandOutput.replaceChildren()
+    cliCommandOutput.append('proofweave ')
+    for (const argument of optionsToCLIArgs(options)) {
+      const separator = argument.indexOf('=')
+      const optionName = document.createElement('span')
+      optionName.className = 'cli-option-name'
+      optionName.textContent = separator < 0 ? argument : argument.slice(0, separator)
+      cliCommandOutput.append(optionName)
+      if (separator >= 0) {
+        cliCommandOutput.append('=')
+        const optionValue = document.createElement('span')
+        optionValue.className = 'cli-option-value'
+        optionValue.textContent = argument.slice(separator + 1)
+        cliCommandOutput.append(optionValue)
+      }
+      cliCommandOutput.append(' ')
     }
-    cliCommandOutput.append(' ')
+    cliCommandOutput.append('YOUR_FILE.md')
+    cliCommandOutput.dataset.command = command
   }
-  cliCommandOutput.append('YOUR_FILE.md')
-  cliCommandOutput.dataset.command = command
+  const shareUrl = shareUrlForOptions(window.location.href, options)
+  if (shareUrl !== lastShareUrl) {
+    lastShareUrl = shareUrl
+    urlCommandOutput.value = shareUrl
+    urlCommandOutput.title = shareUrl
+    urlCommandOutput.dataset.url = shareUrl
+  }
 }
 
 function updateStats(): void {
@@ -313,6 +328,46 @@ function updateMathSpacingControls(): void {
   optionsForm.querySelectorAll<HTMLInputElement>('[data-math-spacing-rule]').forEach((input) => {
     input.disabled = !options.mathSpacing.enabled
   })
+}
+
+function syncOptionsForm(): void {
+  setCheckedRadio('indent', String(options.indent))
+  setCheckedRadio('inline', options.inlineMath)
+  setCheckedRadio('statementDisplay', options.statementDisplayMath)
+  setCheckedRadio('outsideDisplay', options.outsideDisplayMath)
+  setCheckedRadio('sectionNumbering', options.sectionNumbering)
+
+  const mathSpacingMaster = optionsForm.querySelector<HTMLInputElement>('input[name="mathSpacingEnabled"]')
+  if (mathSpacingMaster) mathSpacingMaster.checked = options.mathSpacing.enabled
+  optionsForm.querySelectorAll<HTMLInputElement>('[data-math-spacing-rule]').forEach((input) => {
+    const rule = input.dataset.mathSpacingRule
+    if (isMathSpacingRule(rule)) input.checked = options.mathSpacing[rule]
+  })
+  optionsForm.querySelectorAll<HTMLInputElement>('[data-cleanup-rule]').forEach((input) => {
+    const rule = input.dataset.cleanupRule
+    if (isCleanupRule(rule)) input.checked = options.cleanup[rule]
+  })
+  updateMathSpacingControls()
+}
+
+function updateOptionsUrl(): void {
+  const url = new URL(window.location.href)
+  url.searchParams.delete('opt')
+  const encoded = optionsToUrlSearch(options)
+  if (encoded) {
+    const value = new URLSearchParams(encoded).get('opt')
+    if (value !== null) url.searchParams.set('opt', value)
+  }
+  const next = `${url.pathname}${url.search}${url.hash}`
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+  if (next !== current) window.history.replaceState(null, '', next)
+}
+
+function applyConversionOptions(next: ConverterOptions): void {
+  options = next
+  syncOptionsForm()
+  updateOptionsUrl()
+  convert()
 }
 
 function setView(nextView: EditorView): void {
@@ -398,6 +453,32 @@ async function copyText(text: string): Promise<void> {
   }, 1500)
 }
 
+async function copyShareValue(text: string, button: HTMLButtonElement): Promise<void> {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const previous = document.activeElement
+    if (button === urlCopy) {
+      urlCommandOutput.focus()
+      urlCommandOutput.select()
+      document.execCommand('copy')
+      urlCommandOutput.setSelectionRange(0, 0)
+    } else {
+      const range = document.createRange()
+      range.selectNodeContents(cliCommandOutput)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+      document.execCommand('copy')
+      selection?.removeAllRanges()
+    }
+    if (previous instanceof HTMLElement) previous.focus()
+  }
+  button.textContent = 'Copied'
+  window.setTimeout(() => { button.textContent = 'Copy' }, 1500)
+}
+
 editor.addEventListener('input', () => {
   if (view !== 'markdown') return
   source = editor.value
@@ -467,32 +548,28 @@ optionsForm.addEventListener('change', (event) => {
 
   if (target.type === 'checkbox') {
     if (target.name === 'mathSpacingEnabled') {
-      options = {
+      applyConversionOptions({
         ...options,
         mathSpacing: { ...options.mathSpacing, enabled: target.checked },
-      }
-      updateMathSpacingControls()
-      convert()
+      })
       return
     }
 
     const cleanupRule = target.dataset.cleanupRule
     if (isCleanupRule(cleanupRule)) {
-      options = {
+      applyConversionOptions({
         ...options,
         cleanup: { ...options.cleanup, [cleanupRule]: target.checked },
-      }
-      convert()
+      })
       return
     }
 
     const rule = target.dataset.mathSpacingRule
     if (isMathSpacingRule(rule)) {
-      options = {
+      applyConversionOptions({
         ...options,
         mathSpacing: { ...options.mathSpacing, [rule]: target.checked },
-      }
-      convert()
+      })
     }
     return
   }
@@ -505,23 +582,21 @@ optionsForm.addEventListener('change', (event) => {
   }
 
   if (target.name === 'indent' && ['0', '2', '4', 'tab'].includes(target.value)) {
-    options = {
+    applyConversionOptions({
       ...options,
       indent: target.value === 'tab' ? 'tab' : Number(target.value) as 0 | 2 | 4,
-    }
+    })
   } else if (target.name === 'inline' && ['parentheses', 'dollar'].includes(target.value)) {
-    options = { ...options, inlineMath: target.value as InlineMathStyle }
+    applyConversionOptions({ ...options, inlineMath: target.value as InlineMathStyle })
   } else if (target.name === 'statementDisplay' && ['brackets', 'dollars', 'equation'].includes(target.value)) {
-    options = { ...options, statementDisplayMath: target.value as DisplayMathStyle }
+    applyConversionOptions({ ...options, statementDisplayMath: target.value as DisplayMathStyle })
   } else if (target.name === 'outsideDisplay' && ['brackets', 'dollars', 'equation'].includes(target.value)) {
-    options = { ...options, outsideDisplayMath: target.value as DisplayMathStyle }
+    applyConversionOptions({ ...options, outsideDisplayMath: target.value as DisplayMathStyle })
   } else if (target.name === 'sectionNumbering' && ['numbered', 'unnumbered'].includes(target.value)) {
-    options = { ...options, sectionNumbering: target.value as SectionNumbering }
+    applyConversionOptions({ ...options, sectionNumbering: target.value as SectionNumbering })
   } else {
     return
   }
-
-  convert()
 })
 
 themeToggle.addEventListener('click', () => {
@@ -552,6 +627,8 @@ clearInput.addEventListener('click', () => {
 })
 
 editorCopy.addEventListener('click', () => void copyText(currentText()))
+cliCopy.addEventListener('click', () => void copyShareValue(cliCommandOutput.dataset.command ?? '', cliCopy))
+urlCopy.addEventListener('click', () => void copyShareValue(urlCommandOutput.value, urlCopy))
 
 primaryAction.addEventListener('click', () => {
   if (view === 'markdown') setView('latex')
@@ -573,7 +650,11 @@ downloadOutput.addEventListener('click', () => {
 
 applyTheme(readStoredTheme(), false)
 applyEditorZoom(readStoredEditorZoom(), false)
+const restoredOptions = optionsFromUrlSearch(window.location.search)
+options = restoredOptions.options
+syncOptionsForm()
+updateOptionsUrl()
+if (restoredOptions.error) showFileMessage(restoredOptions.error, 'error')
 editor.value = source
-updateMathSpacingControls()
 convert()
 renderEditor()

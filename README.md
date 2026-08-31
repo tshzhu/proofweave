@@ -299,6 +299,29 @@ The browser also provides syntax highlighting, diagnostics, copy/download
 actions, 80%–160% editor text zoom, and persistent light/dark theme selection.
 Conversion runs entirely in the browser.
 
+### Shareable option URLs
+
+When a conversion option differs from the default, ProofWeave adds an `opt`
+query parameter to the current URL. The value is URL-encoded, versioned JSON
+whose `args` array contains the same conversion flags shown by the CLI panel,
+for example:
+
+```text
+https://tshzhu.github.io/proofweave/?opt=%7B%22v%22%3A1%2C%22args%22%3A%5B%22--indent%3D4%22%2C%22--no-remove-boxed%22%5D%7D
+```
+
+The sidebar's **URL** section shows this clean shareable URL and provides a
+copy button. The **CLI** section shows the equivalent local command and has its
+own copy button.
+
+Opening that link restores the conversion settings and updates the form before
+the first conversion. Changing a setting updates the URL with
+`history.replaceState`, so the page is not reloaded. Returning to the default
+configuration removes `opt`. The URL stores conversion options only; Markdown
+content, theme, editor zoom, and the selected view are not included. Malformed,
+unknown-version, or non-conversion payloads are rejected safely and the page
+falls back to defaults with a visible diagnostic.
+
 ## Supported input and output
 
 ProofWeave recognizes `theorem`, `lemma`, `proposition`, `corollary`,

@@ -730,14 +730,56 @@ code {
   font-size: 12px;
 }
 
+.share-panel-content {
+  margin: 0 8px;
+}
+
+.share-panel-content p {
+  margin: 0 0 10px;
+  color: var(--light3);
+  font-size: 12px;
+}
+
+.share-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.share-field textarea {
+  width: 100%;
+  min-height: 52px;
+  padding: 10px;
+  resize: vertical;
+  overflow-wrap: anywhere;
+  color: var(--light2);
+  font: var(--mono-normal);
+  line-height: 1.45;
+}
+
 #cli-command {
   display: block;
-  margin: 0 8px;
+  min-width: 0;
   padding: 10px;
   overflow-wrap: anywhere;
   color: var(--light2);
   line-height: 1.45;
   white-space: normal;
+}
+
+.share-copy {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--main-bg);
+  color: var(--header-fg);
+  font: var(--sans-normal);
+}
+
+.share-copy:hover {
+  background: var(--hover-bg);
 }
 
 .cli-option-name {
