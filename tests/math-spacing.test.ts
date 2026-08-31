@@ -40,6 +40,18 @@ test('normalizes greater-or-equal and less-or-equal variants to configurable com
   assert.equal(formatMathSpacing(String.raw`\text{a\geq b} + c\geqq d`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`\text{a \geq b} + c \geqslant d`)
 })
 
+test('normalizes not-equal and empty-set variants to configurable commands', () => {
+  assert.equal(
+    formatMathSpacing(String.raw`a\ne b, c\neq d, e\not=f, g\not = h; A=\emptyset, B=\varnothing`),
+    String.raw`a \neq b, c \neq d, e \neq f, g \neq h; A = \varnothing, B = \varnothing`,
+  )
+  const configured = cleanup({ notEqualCommand: String.raw`\ne`, emptySetCommand: String.raw`\emptyset` })
+  assert.equal(formatMathSpacing(String.raw`a\neq b, A=\varnothing`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`a \ne b, A = \emptyset`)
+  assert.equal(formatMathSpacing(String.raw`\text{a\ne b}+c\neq d`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`\text{a \ne b} + c \ne d`)
+  const disabled = cleanup({ normalizeNotEqualCommand: false, normalizeEmptySetCommand: false })
+  assert.equal(formatMathSpacing(String.raw`a\ne b, A=\emptyset`, { ...DEFAULT_MATH_SPACING_OPTIONS, enabled: false }, disabled), String.raw`a\ne b, A=\emptyset`)
+})
+
 test('unifies matched set-brace size variants and preserves opaque text', () => {
   const configured = cleanup({ unifySetNotation: true })
   const input = String.raw`\{x \in A\} + \big\{y\big\} + \Bigl\{z\Bigr\} + \left\{w\right\} + \left\lbrace q \right\rbrace + \text{literal \{q\}}`

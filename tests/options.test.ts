@@ -100,6 +100,10 @@ test('serializes and parses all independent cleanup options', () => {
     normalizeInequalityCommands: true,
     greaterEqualCommand: String.raw`\ge`,
     lessEqualCommand: String.raw`\leq`,
+    normalizeNotEqualCommand: true,
+    notEqualCommand: String.raw`\neq`,
+    normalizeEmptySetCommand: true,
+    emptySetCommand: String.raw`\varnothing`,
     unifySetNotation: true,
     unifyTransposeNotation: true,
     transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -110,6 +114,8 @@ test('serializes and parses all independent cleanup options', () => {
     ['fontCommandBraces', 'font-command-braces'],
     ['collapseSpaces', 'collapse-spaces'],
     ['normalizeInequalityCommands', 'normalize-inequality-commands'],
+    ['normalizeNotEqualCommand', 'normalize-not-equal-command'],
+    ['normalizeEmptySetCommand', 'normalize-empty-set-command'],
   ] as const) {
     const configured = cloneConverterOptions()
     configured.cleanup[key] = false
@@ -139,6 +145,14 @@ test('serializes and parses all independent cleanup options', () => {
   const parsedCommands = parseCLIArguments(args)
   assert.equal(parsedCommands.options.cleanup.greaterEqualCommand, String.raw`\geqslant`)
   assert.equal(parsedCommands.options.cleanup.lessEqualCommand, String.raw`\le`)
+  configured.cleanup.notEqualCommand = String.raw`\ne`
+  configured.cleanup.emptySetCommand = String.raw`\emptyset`
+  const symbolArgs = optionsToCLIArgs(configured)
+  assert.ok(symbolArgs.includes(String.raw`--ne-command=\ne`))
+  assert.ok(symbolArgs.includes(String.raw`--empty-set-command=\emptyset`))
+  const parsedSymbols = parseCLIArguments(symbolArgs)
+  assert.equal(parsedSymbols.options.cleanup.notEqualCommand, String.raw`\ne`)
+  assert.equal(parsedSymbols.options.cleanup.emptySetCommand, String.raw`\emptyset`)
 })
 
 test('validates transpose expressions before accepting CLI or URL options', () => {
@@ -150,6 +164,8 @@ test('validates transpose expressions before accepting CLI or URL options', () =
 test('validates inequality command values', () => {
   assert.throws(() => parseCLIArguments(['--ge-command=>=']), /one LaTeX control word/)
   assert.throws(() => parseCLIArguments(['--le-command=\\le x']), /one LaTeX control word/)
+  assert.throws(() => parseCLIArguments(['--ne-command=!=']), /one LaTeX control word/)
+  assert.throws(() => parseCLIArguments(['--empty-set-command=empty']), /one LaTeX control word/)
 })
 
 test('round-trips conversion options through the versioned URL payload', () => {

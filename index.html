@@ -286,6 +286,16 @@
                 <input id="le-command" class="cleanup-expression" name="lessEqualCommand" type="text" value="\le" aria-label="Less-or-equal command" spellcheck="false" />
               </span>
             </label>
+            <label class="option-row cleanup-expression-row">
+              <input type="checkbox" data-cleanup-rule="normalizeNotEqualCommand" checked />
+              <span>Normalize not-equal command <small><code>\ne</code>, <code>\neq</code>, <code>\not=</code></small></span>
+              <input id="ne-command" class="cleanup-expression" name="notEqualCommand" type="text" value="\neq" aria-label="Not-equal command" spellcheck="false" />
+            </label>
+            <label class="option-row cleanup-expression-row">
+              <input type="checkbox" data-cleanup-rule="normalizeEmptySetCommand" checked />
+              <span>Normalize empty-set command <small><code>\emptyset</code>, <code>\varnothing</code></small></span>
+              <input id="empty-set-command" class="cleanup-expression" name="emptySetCommand" type="text" value="\varnothing" aria-label="Empty-set command" spellcheck="false" />
+            </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="unifySetNotation" checked />
               <span>Unify set notation <small><code>\{x\}</code> → <code>\set{x}</code></small></span>
