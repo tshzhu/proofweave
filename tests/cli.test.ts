@@ -168,6 +168,18 @@ Done.`
   assert.match(result.stdout, /\\ref\{theorem:main\}/)
 })
 
+test('normalizes inequality variants through configurable CLI commands', () => {
+  const markdown = String.raw`Inline \(a>=b, c> =d, e\geqq f, g<=h, i< =j, k\leqslant l\).`
+  const options = cloneConverterOptions()
+  options.cleanup.greaterEqualCommand = String.raw`\geqslant`
+  options.cleanup.lessEqualCommand = String.raw`\le`
+  const result = runCLI([String.raw`--ge-command=\geqslant`, String.raw`--le-command=\le`], markdown)
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, convertMarkdown(markdown, options).latex)
+  assert.match(result.stdout, /a \\geqslant b/)
+  assert.match(result.stdout, /g \\le h/)
+})
+
 test('keeps cleanup flags effective when math spacing is disabled', () => {
   const markdown = String.raw`Inline \(\boxed{\mathcal X                    \ref{prop:claim}}\).`
   const options = cloneConverterOptions()

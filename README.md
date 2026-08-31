@@ -72,9 +72,9 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \leq 1}$. Then
 	\begin{equation}
-		  | f(x) | \le C.
+		  | f(x) | \leq C.
 	\end{equation}
 \end{lemma}
 
@@ -215,6 +215,9 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
 | `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
 | `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
+| `--[no-]normalize-inequality-commands` | Normalize `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, plus `<=`, `< =`, `\le`, `\leq`, `\leqq`, and `\leqslant` (enabled by default). |
+| `--ge-command=LATEX` | Target greater-or-equal control word; default is `\ge`. |
+| `--le-command=LATEX` | Target less-or-equal control word; default is `\leq`. |
 | `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (enabled by default). |
 | `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (enabled by default). |
 | `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |

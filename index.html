@@ -276,6 +276,16 @@
               <input type="checkbox" data-cleanup-rule="collapseSpaces" checked />
               <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
             </label>
+            <label class="option-row cleanup-expression-row">
+              <input type="checkbox" data-cleanup-rule="normalizeInequalityCommands" checked />
+              <span>Normalize inequality commands <small><code>&gt;=</code>, <code>\geq</code> / <code>&lt;=</code>, <code>\leq</code></small></span>
+              <span class="cleanup-expression-pair">
+                <label for="ge-command">Greater or equal</label>
+                <input id="ge-command" class="cleanup-expression" name="greaterEqualCommand" type="text" value="\ge" aria-label="Greater-or-equal command" spellcheck="false" />
+                <label for="le-command">Less or equal</label>
+                <input id="le-command" class="cleanup-expression" name="lessEqualCommand" type="text" value="\le" aria-label="Less-or-equal command" spellcheck="false" />
+              </span>
+            </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="unifySetNotation" checked />
               <span>Unify set notation <small><code>\{x\}</code> → <code>\set{x}</code></small></span>

@@ -29,6 +29,8 @@ test('round-trips every effective web option through CLI arguments', () => {
   options.cleanup.unifySetNotation = true
   options.cleanup.unifyTransposeNotation = true
   options.cleanup.transposeExpression = String.raw`\mathsf{T}`
+  options.cleanup.greaterEqualCommand = String.raw`\geqslant`
+  options.cleanup.lessEqualCommand = String.raw`\le`
   options.cleanup.normalizeLabelPrefixes = false
   options.cleanup.fontCommandBraces = false
   options.mathSpacing.punctuation = false
@@ -95,6 +97,9 @@ test('serializes and parses all independent cleanup options', () => {
     normalizeLabelPrefixes: true,
     fontCommandBraces: true,
     collapseSpaces: true,
+    normalizeInequalityCommands: true,
+    greaterEqualCommand: String.raw`\ge`,
+    lessEqualCommand: String.raw`\leq`,
     unifySetNotation: true,
     unifyTransposeNotation: true,
     transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -104,6 +109,7 @@ test('serializes and parses all independent cleanup options', () => {
     ['normalizeLabelPrefixes', 'normalize-label-prefixes'],
     ['fontCommandBraces', 'font-command-braces'],
     ['collapseSpaces', 'collapse-spaces'],
+    ['normalizeInequalityCommands', 'normalize-inequality-commands'],
   ] as const) {
     const configured = cloneConverterOptions()
     configured.cleanup[key] = false
@@ -125,12 +131,25 @@ test('serializes and parses all independent cleanup options', () => {
     parseCLIArguments([String.raw`--transpose-expression=\mathbf{T}`]).options.cleanup.transposeExpression,
     String.raw`\mathbf{T}`,
   )
+  configured.cleanup.greaterEqualCommand = String.raw`\geqslant`
+  configured.cleanup.lessEqualCommand = String.raw`\le`
+  const args = optionsToCLIArgs(configured)
+  assert.ok(args.includes(String.raw`--ge-command=\geqslant`))
+  assert.ok(args.includes(String.raw`--le-command=\le`))
+  const parsedCommands = parseCLIArguments(args)
+  assert.equal(parsedCommands.options.cleanup.greaterEqualCommand, String.raw`\geqslant`)
+  assert.equal(parsedCommands.options.cleanup.lessEqualCommand, String.raw`\le`)
 })
 
 test('validates transpose expressions before accepting CLI or URL options', () => {
   assert.throws(() => parseCLIArguments(['--transpose-expression=']), /Expected a value/)
   assert.throws(() => parseCLIArguments(['--transpose-expression=% bad']), /must not contain/)
   assert.throws(() => parseCLIArguments(['--transpose-expression={bad']), /unbalanced braces/)
+})
+
+test('validates inequality command values', () => {
+  assert.throws(() => parseCLIArguments(['--ge-command=>=']), /one LaTeX control word/)
+  assert.throws(() => parseCLIArguments(['--le-command=\\le x']), /one LaTeX control word/)
 })
 
 test('round-trips conversion options through the versioned URL payload', () => {
@@ -141,6 +160,8 @@ test('round-trips conversion options through the versioned URL payload', () => {
   options.cleanup.unifySetNotation = true
   options.cleanup.unifyTransposeNotation = true
   options.cleanup.transposeExpression = String.raw`\mathsf{T}`
+  options.cleanup.greaterEqualCommand = String.raw`\geqslant`
+  options.cleanup.lessEqualCommand = String.raw`\le`
   options.mathSpacing.enabled = false
   options.mathSpacing.relations = false
   options.mathSpacing.namedFunctions = false

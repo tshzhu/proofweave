@@ -17,6 +17,7 @@ import {
   optionsToUrlSearch,
   shellQuoteCLIArgument,
   shareUrlForOptions,
+  validateInequalityCommand,
   validateTransposeExpression,
   type ConverterOptions,
 } from './options.ts'
@@ -64,6 +65,8 @@ const urlCommandOutput = requireElement<HTMLElement>('#url-command')
 const cliCopy = requireElement<HTMLButtonElement>('#cli-copy')
 const urlCopy = requireElement<HTMLButtonElement>('#url-copy')
 const transposeExpressionInput = requireElement<HTMLInputElement>('#transpose-expression')
+const greaterEqualCommandInput = requireElement<HTMLInputElement>('#ge-command')
+const lessEqualCommandInput = requireElement<HTMLInputElement>('#le-command')
 
 let view: EditorView = 'markdown'
 let source = EXAMPLE_MARKDOWN
@@ -357,6 +360,8 @@ function syncOptionsForm(): void {
     if (isCleanupRule(rule)) input.checked = options.cleanup[rule] === true
   })
   transposeExpressionInput.value = options.cleanup.transposeExpression
+  greaterEqualCommandInput.value = options.cleanup.greaterEqualCommand
+  lessEqualCommandInput.value = options.cleanup.lessEqualCommand
   updateMathSpacingControls()
 }
 
@@ -594,6 +599,21 @@ optionsForm.addEventListener('change', (event) => {
       applyConversionOptions({
         ...options,
         cleanup: { ...options.cleanup, transposeExpression },
+      })
+    } catch (error) {
+      syncOptionsForm()
+      showFileMessage(error instanceof Error ? error.message : String(error), 'error')
+    }
+    return
+  }
+
+  if (target.type === 'text' && (target.name === 'greaterEqualCommand' || target.name === 'lessEqualCommand')) {
+    try {
+      const command = validateInequalityCommand(target.value, target.name)
+      clearFileMessage()
+      applyConversionOptions({
+        ...options,
+        cleanup: { ...options.cleanup, [target.name]: command },
       })
     } catch (error) {
       syncOptionsForm()

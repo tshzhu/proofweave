@@ -13,7 +13,7 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\leq`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
@@ -31,9 +31,9 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \leq 1}$. Then
 	\begin{equation}
-		  | f(x) | \le C.
+		  | f(x) | \leq C.
 	\end{equation}
 \end{lemma}
 
@@ -351,7 +351,7 @@ c &= d
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -633,7 +633,7 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -761,6 +761,7 @@ function assertMathSpacingIsStable(input: string): void {
     collapseSpaces: true,
     unifySetNotation: false,
     unifyTransposeNotation: false,
+    normalizeInequalityCommands: false,
   }
   for (const segment of blueprintMathSegments(input)) {
     const formatted = formatMathSpacing(segment, DEFAULT_MATH_SPACING_OPTIONS, tokenPreservingCleanup)
