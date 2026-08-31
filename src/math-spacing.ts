@@ -14,6 +14,9 @@ export interface MathCleanupOptions {
   normalizeLabelPrefixes: boolean
   fontCommandBraces: boolean
   collapseSpaces: boolean
+  normalizeInequalityCommands: boolean
+  greaterEqualCommand: string
+  lessEqualCommand: string
   unifySetNotation: boolean
   unifyTransposeNotation: boolean
   transposeExpression: string
@@ -38,6 +41,9 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
+  normalizeInequalityCommands: true,
+  greaterEqualCommand: '\\ge',
+  lessEqualCommand: '\\leq',
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -620,6 +626,14 @@ function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): st
           continue
         }
       }
+      if (commandEnd < value.length && value[commandEnd] === '{') {
+        const end = groupEnd(value, commandEnd)
+        if (end !== undefined) {
+          result += `${command}{${normalizeTransposeNotation(value.slice(commandEnd + 1, end - 1), usage)}}`
+          index = end
+          continue
+        }
+      }
       result += command
       index = commandEnd
       continue
@@ -699,7 +713,7 @@ function singleFontAtomEnd(value: string, start: number): number | undefined {
 }
 
 function braceFontCommandArguments(value: string): string {
-  if (!value.includes('\\')) return value
+  if (!/[\\<>]/.test(value)) return value
   let result = ''
   for (let index = 0; index < value.length;) {
     if (value[index] !== '\\') {
@@ -1286,6 +1300,59 @@ function normalizeMathReferences(value: string, normalizeLabelPrefixes: boolean)
   return value.split('\n').map((line) => normalizeReferenceLine(line, normalizeLabelPrefixes)).join('\n')
 }
 
+function normalizeInequalityCommands(
+  value: string,
+  greaterEqualCommand: string,
+  lessEqualCommand: string,
+): string {
+  if (!/[\\<>]/.test(value)) return value
+  let result = ''
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) {
+      const newline = value.indexOf('\n', index)
+      if (newline < 0) return result + value.slice(index)
+      result += value.slice(index, newline + 1)
+      index = newline + 1
+      continue
+    }
+    if (value[index] !== '\\') {
+      if (value[index] === '>' || value[index] === '<') {
+        let equal = index + 1
+        while (/[ \t]/.test(value[equal] ?? '')) equal += 1
+        if (value[equal] === '=') {
+          const replacement = value[index] === '>' ? greaterEqualCommand : lessEqualCommand
+          const separator = /[A-Za-z@]/.test(value[equal + 1] ?? '') ? ' ' : ''
+          result += replacement + separator
+          index = equal + 1
+          continue
+        }
+      }
+      result += value[index]
+      index += 1
+      continue
+    }
+    const command = commandAt(value, index)
+    const commandEnd = index + command.length
+    if (isSemanticOpaqueCommand(command)) {
+      const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+      if (opaqueEnd !== undefined) {
+        result += value.slice(index, opaqueEnd)
+        index = opaqueEnd
+        continue
+      }
+    }
+    const replacement = ['\\ge', '\\geq', '\\geqq', '\\geqslant'].includes(command)
+      ? greaterEqualCommand
+      : ['\\le', '\\leq', '\\leqq', '\\leqslant'].includes(command)
+        ? lessEqualCommand
+        : command
+    result += replacement
+    if (replacement !== command && /[A-Za-z@]/.test(value[commandEnd] ?? '')) result += ' '
+    index = commandEnd
+  }
+  return result
+}
+
 function formatMathCode(
   value: string,
   options: MathSpacingOptions,
@@ -1359,12 +1426,15 @@ export function formatMathSpacing(
   if (value.length === 0) return value
   if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_^]/.test(value)) return value
   const referenced = normalizeMathReferences(value, cleanup.normalizeLabelPrefixes)
-  let normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
-  normalized = normalizeSemanticNotation(normalized, cleanup, usage)
+  const inequalities = cleanup.normalizeInequalityCommands
+    ? normalizeInequalityCommands(referenced, cleanup.greaterEqualCommand, cleanup.lessEqualCommand)
+    : referenced
+  const braced = cleanup.fontCommandBraces ? braceFontCommandArguments(inequalities) : inequalities
+  const normalized = normalizeSemanticNotation(braced, cleanup, usage)
   if (!options.enabled) {
     return cleanup.collapseSpaces
       ? normalized.split('\n').map(collapseMathSpacesOnly).join('\n')
       : normalized
   }
-  return normalized.split('\n').map((line) => formatLine(line, options, cleanup.collapseSpaces, cleanup, usage)).join('\n')
+  return normalized.split('\n').map((line) => formatLine(line, options, cleanup.collapseSpaces)).join('\n')
 }

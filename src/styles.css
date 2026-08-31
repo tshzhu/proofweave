@@ -675,6 +675,23 @@ details[open] summary::after {
   font: var(--mono-normal);
 }
 
+.cleanup-expression-pair {
+  display: grid;
+  grid-column: 2;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.cleanup-expression-pair .cleanup-expression {
+  grid-column: auto;
+}
+
+.cleanup-expression-pair label {
+  color: var(--light6);
+  font-size: 11px;
+}
+
 .math-spacing-master {
   margin-bottom: 6px;
 }

@@ -13,6 +13,9 @@ export interface CleanupOptions {
   normalizeLabelPrefixes: boolean;
   fontCommandBraces: boolean;
   collapseSpaces: boolean;
+  normalizeInequalityCommands: boolean;
+  greaterEqualCommand: string;
+  lessEqualCommand: string;
   unifySetNotation: boolean;
   unifyTransposeNotation: boolean;
   transposeExpression: string;
@@ -38,13 +41,16 @@ export const MATH_SPACING_RULES = [
 ] as const satisfies readonly Exclude<keyof MathSpacingOptions, "enabled">[];
 
 export type MathSpacingRule = (typeof MATH_SPACING_RULES)[number];
-export type CleanupBooleanRule = Exclude<keyof CleanupOptions, "transposeExpression">;
+export type CleanupBooleanRule = Exclude<keyof CleanupOptions, "transposeExpression" | "greaterEqualCommand" | "lessEqualCommand">;
 
 export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   removeBoxed: true,
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
+  normalizeInequalityCommands: true,
+  greaterEqualCommand: "\\ge",
+  lessEqualCommand: "\\leq",
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION,
@@ -114,6 +120,13 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (!options.cleanup.normalizeLabelPrefixes) args.push("--no-normalize-label-prefixes");
   if (!options.cleanup.fontCommandBraces) args.push("--no-font-command-braces");
   if (!options.cleanup.collapseSpaces) args.push("--no-collapse-spaces");
+  if (!options.cleanup.normalizeInequalityCommands) args.push("--no-normalize-inequality-commands");
+  if (options.cleanup.greaterEqualCommand !== DEFAULT_CLEANUP_OPTIONS.greaterEqualCommand) {
+    args.push(`--ge-command=${options.cleanup.greaterEqualCommand}`);
+  }
+  if (options.cleanup.lessEqualCommand !== DEFAULT_CLEANUP_OPTIONS.lessEqualCommand) {
+    args.push(`--le-command=${options.cleanup.lessEqualCommand}`);
+  }
   if (!options.cleanup.unifySetNotation) args.push("--no-unify-set-notation");
   if (!options.cleanup.unifyTransposeNotation) args.push("--no-unify-transpose");
   if (options.cleanup.transposeExpression !== DEFAULT_CLEANUP_OPTIONS.transposeExpression) {
@@ -260,6 +273,14 @@ export function validateTransposeExpression(value: string): string {
   return normalized;
 }
 
+export function validateInequalityCommand(value: string, flag = "Inequality command"): string {
+  const normalized = value.trim();
+  if (!/^\\[A-Za-z@]+$/.test(normalized)) {
+    throw new Error(`${flag} must be one LaTeX control word such as \\ge or \\le.`);
+  }
+  return normalized;
+}
+
 function setBooleanOption(options: ConverterOptions, flag: string): boolean {
   const enabled = !flag.startsWith("--no-");
   const name = flag.replace(/^--(?:no-)?/, "");
@@ -272,6 +293,7 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     "normalize-label-prefixes": "normalizeLabelPrefixes",
     "font-command-braces": "fontCommandBraces",
     "collapse-spaces": "collapseSpaces",
+    "normalize-inequality-commands": "normalizeInequalityCommands",
     "unify-set-notation": "unifySetNotation",
     "unify-transpose": "unifyTransposeNotation",
     "unify-transpose-notation": "unifyTransposeNotation",
@@ -366,6 +388,10 @@ export function parseCLIArguments(args: readonly string[]): ParsedCLIArguments {
       );
     } else if (flag === "--transpose-expression") {
       options.cleanup.transposeExpression = validateTransposeExpression(takeValue());
+    } else if (flag === "--ge-command") {
+      options.cleanup.greaterEqualCommand = validateInequalityCommand(takeValue(), flag);
+    } else if (flag === "--le-command") {
+      options.cleanup.lessEqualCommand = validateInequalityCommand(takeValue(), flag);
     } else if (!setBooleanOption(options, flag)) {
       throw new Error(`Unknown option: ${flag}.`);
     } else if (inlineValue !== undefined) {
@@ -408,6 +434,9 @@ Conversion options:
   --[no-]normalize-label-prefixes
   --[no-]font-command-braces
   --[no-]collapse-spaces
+  --[no-]normalize-inequality-commands
+  --ge-command=LATEX
+  --le-command=LATEX
   --[no-]unify-set-notation
   --[no-]unify-transpose
   --transpose-expression=LATEX

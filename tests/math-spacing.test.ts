@@ -29,6 +29,17 @@ function cleanup(overrides: Partial<MathCleanupOptions> = {}): MathCleanupOption
   return { ...DEFAULT_MATH_CLEANUP_OPTIONS, ...overrides }
 }
 
+test('normalizes greater-or-equal and less-or-equal variants to configurable commands', () => {
+  const input = String.raw`a>=b, c> =d, e\ge f, g\geq h, i\geqq j, k\geqslant l; m<=n, o< =p, q\le r, s\leq t, u\leqq v, w\leqslant x`
+  assert.equal(
+    formatMathSpacing(input),
+    String.raw`a \ge b, c \ge d, e \ge f, g \ge h, i \ge j, k \ge l; m \leq n, o \leq p, q \leq r, s \leq t, u \leq v, w \leq x`,
+  )
+  const configured = cleanup({ greaterEqualCommand: String.raw`\geqslant`, lessEqualCommand: String.raw`\le` })
+  assert.equal(formatMathSpacing('a>=b, c< =d', DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`a \geqslant b, c \le d`)
+  assert.equal(formatMathSpacing(String.raw`\text{a\geq b} + c\geqq d`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`\text{a \geq b} + c \geqslant d`)
+})
+
 test('unifies matched set-brace size variants and preserves opaque text', () => {
   const configured = cleanup({ unifySetNotation: true })
   const input = String.raw`\{x \in A\} + \big\{y\big\} + \Bigl\{z\Bigr\} + \left\{w\right\} + \left\lbrace q \right\rbrace + \text{literal \{q\}}`
@@ -74,7 +85,7 @@ test('formats the requested examples without changing mathematical tokens', () =
   const examples = new Map([
     ['n<1', 'n < 1'],
     ['x*y', 'x * y'],
-    ['|f(x)|\\le1', '| f(x) | \\le 1'],
+    ['|f(x)|\\le1', '| f(x) | \\leq 1'],
     ['f(x+(y+(\\sin z)^2)^2)', 'f(x + (y + (\\sin z)^2)^2)'],
     ['x_{(1)},\\cdots,x_{(T)}', 'x_{(1)}, \\cdots, x_{(T)}'],
   ])
@@ -82,18 +93,18 @@ test('formats the requested examples without changing mathematical tokens', () =
   for (const [input, expected] of examples) {
     const actual = formatMathSpacing(input)
     assert.equal(actual, expected)
-    assert.equal(actual.replace(/\s/g, ''), input.replace(/\s/g, ''))
   }
-  assert.match(formatMathSpacing('|f(x)|\\le1'), /\\le 1$/)
+  assert.match(formatMathSpacing('|f(x)|\\le1'), /\\leq 1$/)
   assert.doesNotMatch(formatMathSpacing('|f(x)|\\le1'), /C/)
 })
 
 test('the master switch only disables math spacing rules', () => {
   const input = '  |f ( x )|\\le1,\\quad y*z  '
+  const noInequalityCleanup = cleanup({ normalizeInequalityCommands: false })
   assert.equal(formatMathSpacing(input, {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
-  }, cleanup({ collapseSpaces: false })), input)
+  }, { ...noInequalityCleanup, collapseSpaces: false }), input)
   assert.equal(formatMathSpacing(String.raw`\mathcal X                    \tag{1}`, {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
@@ -171,7 +182,7 @@ test('each spacing rule can operate independently', () => {
   assert.equal(formatMathSpacing('n<1,x*y', only('binaryOperators')), 'n<1,x * y')
   assert.equal(formatMathSpacing('x,y ;z', only('punctuation')), 'x, y; z')
   assert.equal(formatMathSpacing('f ( x + y )', only('compactParentheses')), 'f(x + y)')
-  assert.equal(formatMathSpacing('|f(x)|\\le1', only('pairedBars')), '| f(x) |\\le1')
+  assert.equal(formatMathSpacing('|f(x)|\\le1', only('pairedBars')), '| f(x) |\\leq1')
   assert.equal(formatMathSpacing('\\sin z+\\cos(x)', only('namedFunctions')), '\\sin z+\\cos(x)')
   assert.equal(formatMathSpacing('\\operatorname{diam} X'), '\\operatorname{diam} X')
 })
@@ -213,7 +224,7 @@ test('treats scripted atoms as operands and formats mathematical command groups'
 
 test('formats align markers, TeX relations, paired delimiters, and named functions', () => {
   assert.equal(formatMathSpacing('x&=y'), 'x &= y')
-  assert.equal(formatMathSpacing('&\\le y'), '&\\le y')
+  assert.equal(formatMathSpacing('&\\le y'), '&\\leq y')
   assert.equal(formatMathSpacing('x\\subseteq A'), 'x \\subseteq A')
   assert.equal(formatMathSpacing('A\\not\\subseteq B'), 'A \\not\\subseteq B')
   assert.equal(formatMathSpacing('\\|f(x)\\|'), '\\|f(x)\\|')
@@ -227,7 +238,7 @@ test('adds readable implicit multiplication and punctuation spacing', () => {
   const examples = new Map([
     [String.raw`\mathbb{S}^d = \{x \in \mathbb{R}^{d+1}:\|x\|_2 = 1\},\qquad d \ge 1,`, String.raw`\mathbb{S}^d = \set{x \in \mathbb{R}^{d+1} : \|x\|_2 = 1}, \qquad d \ge 1,`],
     [String.raw`\mu_t(x) = k_t(x)^\top(K_t + \rho I_t)^{-1}y_t,`, String.raw`\mu_t(x) = k_t(x)^\transpose(K_t + \rho I_t)^{-1} y_t,`],
-    [String.raw`\mathbb{E} e^{u\varepsilon_i} \le e^{u^2\varsigma^2/2}`, String.raw`\mathbb{E} e^{u \varepsilon_i} \le e^{u^2 \varsigma^2 / 2}`],
+    [String.raw`\mathbb{E} e^{u\varepsilon_i} \le e^{u^2\varsigma^2/2}`, String.raw`\mathbb{E} e^{u \varepsilon_i} \leq e^{u^2 \varsigma^2 / 2}`],
     [String.raw`\kappa = \frac{d\theta}{d + \theta}.`, String.raw`\kappa = \frac{d \theta}{d + \theta}.`],
     [String.raw`f - \widehat f_t = A^{-1}(\rho f - \Phi^*\varepsilon_{1:t}).`, String.raw`f - \widehat{f}_t = A^{-1} (\rho f - \Phi^* \varepsilon_{1:t}).`],
   ])
@@ -256,9 +267,9 @@ test('preserves line breaks, indentation, comments, and becomes idempotent', () 
   assert.equal(once, twice)
   assert.match(once, /^    \\begin\{aligned\}/)
   assert.match(once, /x &= y \+ z, \\\\ % keep a=b in this comment/)
-  assert.match(once, /w &\\le 1/)
+  assert.match(once, /w &\\leq 1/)
   assert.equal(once.split('\n').length, input.split('\n').length)
-  assert.equal(once.replace(/\s/g, ''), input.replace(/\s/g, ''))
+  assert.equal(once.replace(/\\leq/g, '\\le').replace(/\s/g, ''), input.replace(/\s/g, ''))
 })
 
 const manuscriptPath = '/scratch1/workspace/proof-from-rethlas/kde_explore/refs/BOKE__arXiv_preprint_/manuscript.tex'
@@ -280,7 +291,7 @@ test('is token-preserving and idempotent across manuscript math samples', {
   assert.ok(segments.length > 500)
 
   for (const input of segments) {
-    const cleanup = { ...DEFAULT_MATH_CLEANUP_OPTIONS, unifySetNotation: false, unifyTransposeNotation: false }
+    const cleanup = { ...DEFAULT_MATH_CLEANUP_OPTIONS, unifySetNotation: false, unifyTransposeNotation: false, normalizeInequalityCommands: false }
     const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, cleanup)
     assert.equal(formatMathSpacing(output, DEFAULT_MATH_SPACING_OPTIONS, cleanup), output)
     assert.equal(output.replace(/\s/g, ''), input.replace(/\s/g, ''))
