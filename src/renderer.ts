@@ -364,10 +364,10 @@ export function renderLatex(
     .replace(/[ \t]+$/gm, "")
     .trim();
   const declarations: string[] = [];
-  if (options.cleanup.unifySetNotation) {
+  if (options.cleanup.unifySetNotation && context.cleanupUsage.setNotation) {
     declarations.push(String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set`);
   }
-  if (options.cleanup.unifyTransposeNotation) {
+  if (options.cleanup.unifyTransposeNotation && context.cleanupUsage.transposeNotation) {
     declarations.push(`\\newcommand{\\transpose}{{${options.cleanup.transposeExpression}}} % transpose`);
   }
   const latex = declarations.length === 0

@@ -45,8 +45,8 @@ export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
-  unifySetNotation: false,
-  unifyTransposeNotation: false,
+  unifySetNotation: true,
+  unifyTransposeNotation: true,
   transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION,
 };
 
@@ -114,8 +114,8 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (!options.cleanup.normalizeLabelPrefixes) args.push("--no-normalize-label-prefixes");
   if (!options.cleanup.fontCommandBraces) args.push("--no-font-command-braces");
   if (!options.cleanup.collapseSpaces) args.push("--no-collapse-spaces");
-  if (options.cleanup.unifySetNotation) args.push("--unify-set-notation");
-  if (options.cleanup.unifyTransposeNotation) args.push("--unify-transpose");
+  if (!options.cleanup.unifySetNotation) args.push("--no-unify-set-notation");
+  if (!options.cleanup.unifyTransposeNotation) args.push("--no-unify-transpose");
   if (options.cleanup.transposeExpression !== DEFAULT_CLEANUP_OPTIONS.transposeExpression) {
     args.push(`--transpose-expression=${options.cleanup.transposeExpression}`);
   }

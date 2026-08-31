@@ -225,8 +225,8 @@ test('formats align markers, TeX relations, paired delimiters, and named functio
 
 test('adds readable implicit multiplication and punctuation spacing', () => {
   const examples = new Map([
-    [String.raw`\mathbb{S}^d = \{x \in \mathbb{R}^{d+1}:\|x\|_2 = 1\},\qquad d \ge 1,`, String.raw`\mathbb{S}^d = \{x \in \mathbb{R}^{d+1} : \|x\|_2 = 1\}, \qquad d \ge 1,`],
-    [String.raw`\mu_t(x) = k_t(x)^\top(K_t + \rho I_t)^{-1}y_t,`, String.raw`\mu_t(x) = k_t(x)^\top (K_t + \rho I_t)^{-1} y_t,`],
+    [String.raw`\mathbb{S}^d = \{x \in \mathbb{R}^{d+1}:\|x\|_2 = 1\},\qquad d \ge 1,`, String.raw`\mathbb{S}^d = \set{x \in \mathbb{R}^{d+1} : \|x\|_2 = 1}, \qquad d \ge 1,`],
+    [String.raw`\mu_t(x) = k_t(x)^\top(K_t + \rho I_t)^{-1}y_t,`, String.raw`\mu_t(x) = k_t(x)^\transpose(K_t + \rho I_t)^{-1} y_t,`],
     [String.raw`\mathbb{E} e^{u\varepsilon_i} \le e^{u^2\varsigma^2/2}`, String.raw`\mathbb{E} e^{u \varepsilon_i} \le e^{u^2 \varsigma^2 / 2}`],
     [String.raw`\kappa = \frac{d\theta}{d + \theta}.`, String.raw`\kappa = \frac{d \theta}{d + \theta}.`],
     [String.raw`f - \widehat f_t = A^{-1}(\rho f - \Phi^*\varepsilon_{1:t}).`, String.raw`f - \widehat{f}_t = A^{-1} (\rho f - \Phi^* \varepsilon_{1:t}).`],
@@ -280,8 +280,9 @@ test('is token-preserving and idempotent across manuscript math samples', {
   assert.ok(segments.length > 500)
 
   for (const input of segments) {
-    const output = formatMathSpacing(input)
-    assert.equal(formatMathSpacing(output), output)
+    const cleanup = { ...DEFAULT_MATH_CLEANUP_OPTIONS, unifySetNotation: false, unifyTransposeNotation: false }
+    const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, cleanup)
+    assert.equal(formatMathSpacing(output, DEFAULT_MATH_SPACING_OPTIONS, cleanup), output)
     assert.equal(output.replace(/\s/g, ''), input.replace(/\s/g, ''))
   }
 })

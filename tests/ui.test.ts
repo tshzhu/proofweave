@@ -141,21 +141,21 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
   ])
   assert.match(html, /name="mathSpacingEnabled" checked/)
   assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 6)
-  assert.equal((html.match(/data-cleanup-rule="[^"]+" checked/g) ?? []).length, 4)
+  assert.equal((html.match(/data-cleanup-rule="[^"]+" checked/g) ?? []).length, 6)
   assert.equal((html.match(/data-cleanup-rule="[^"]+"/g) ?? []).length, 6)
   assert.match(html, /class="option-row math-spacing-master"[\s\S]*class="math-spacing-rules"/)
   assert.ok(html.indexOf('name="mathSpacingEnabled"') < html.indexOf('data-math-spacing-rule="relations"'))
   assert.doesNotMatch(detailsSection('Math spacing'), /data-cleanup-rule=/)
   assert.match(detailsSection('Cleanup'), /data-cleanup-rule="removeBoxed" checked[\s\S]*data-cleanup-rule="normalizeLabelPrefixes" checked[\s\S]*data-cleanup-rule="fontCommandBraces" checked[\s\S]*data-cleanup-rule="collapseSpaces" checked/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifySetNotation"(?! checked)/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifyTransposeNotation"(?! checked)/)
+  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifySetNotation" checked/)
+  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifyTransposeNotation" checked/)
   assert.match(detailsSection('Cleanup'), /name="transposeExpression"[^>]+value="\\mkern-1\.0mu\\mathsf\{T\}"/)
   assert.match(main, /validateTransposeExpression/)
   assert.match(main, /transposeExpressionInput\.value = options\.cleanup\.transposeExpression/)
   assert.match(main, /target\.type === 'text' && target\.name === 'transposeExpression'/)
   assert.match(main, /cleanup: \{ \.\.\.options\.cleanup, transposeExpression \}/)
-  assert.match(optionsSource, /unifySetNotation: false/)
-  assert.match(optionsSource, /unifyTransposeNotation: false/)
+  assert.match(optionsSource, /unifySetNotation: true/)
+  assert.match(optionsSource, /unifyTransposeNotation: true/)
   assert.match(optionsSource, /transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION/)
   assert.ok(html.indexOf('<summary>Math spacing</summary>') < html.indexOf('<summary>Diagnostics</summary>'))
   assert.match(html, /<summary>Diagnostics<\/summary>/)
@@ -176,16 +176,16 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
       'Math spacing',
       'Cleanup',
       'Diagnostics',
-      'URL',
       'CLI',
+      'URL',
     ],
   )
   assert.match(html, /<details id="cli-panel">[\s\S]*<summary>CLI<\/summary>/)
   assert.match(html, /To run this configuration on the command line:/)
   assert.match(html, /id="cli-command"[\s\S]*proofweave YOUR_FILE\.md/)
-  assert.ok(html.indexOf('<summary>Diagnostics</summary>') < html.indexOf('<summary>URL</summary>'))
-  assert.ok(html.indexOf('<summary>URL</summary>') < html.indexOf('<summary>CLI</summary>'))
-  assert.ok(html.indexOf('<summary>CLI</summary>') < html.indexOf('</form>'))
+  assert.ok(html.indexOf('<summary>Diagnostics</summary>') < html.indexOf('<summary>CLI</summary>'))
+  assert.ok(html.indexOf('<summary>CLI</summary>') < html.indexOf('<summary>URL</summary>'))
+  assert.ok(html.indexOf('<summary>URL</summary>') < html.indexOf('</form>'))
   assert.match(main, /function renderCLICommand\(\)/)
   assert.match(main, /optionsToCLIArgs\(options\)/)
   assert.match(main, /const command = cliCommand\(options\)/)
@@ -198,15 +198,15 @@ test('provides copy controls for the shareable URL and CLI command', () => {
   assert.match(html, /<details id="url-panel">[\s\S]*id="url-command"[\s\S]*id="url-copy"[\s\S]*Copy shareable URL/)
   assert.match(html, /<details id="cli-panel">[\s\S]*id="cli-command"[\s\S]*id="cli-copy"[\s\S]*Copy CLI command/)
   assert.match(css, /\.share-field\s*\{[\s\S]*grid-template-columns/)
-  assert.match(main, /urlCommandOutput\.value = shareUrl/)
+  assert.match(main, /urlCommandOutput\.textContent = shareUrl/)
   assert.match(main, /copyShareValue\(cliCommandOutput\.dataset\.command/)
-  assert.match(main, /copyShareValue\(urlCommandOutput\.value/)
+  assert.match(main, /copyShareValue\(urlCommandOutput\.dataset\.url/)
 })
 
-test('aligns URL and CLI text areas while preserving their distinct overflow behavior', () => {
-  assert.match(css, /\.share-field > textarea,[\s\S]*\.share-field > #cli-command\s*\{[\s\S]*width:\s*100%[\s\S]*min-width:\s*0/)
-  assert.match(css, /\.share-field textarea\s*\{[\s\S]*resize:\s*vertical[\s\S]*overflow:\s*auto[\s\S]*overflow-wrap:\s*anywhere/)
-  assert.match(css, /#cli-command\s*\{[\s\S]*overflow-wrap:\s*anywhere[\s\S]*white-space:\s*normal/)
+test('shows complete URL and CLI content with the same code-field style', () => {
+  assert.match(css, /\.share-field > #url-command,[\s\S]*\.share-field > #cli-command\s*\{[\s\S]*width:\s*100%[\s\S]*min-width:\s*0/)
+  assert.match(css, /#url-command,[\s\S]*#cli-command\s*\{[\s\S]*overflow-wrap:\s*anywhere[\s\S]*white-space:\s*normal/)
+  assert.doesNotMatch(detailsSection('URL'), /<textarea/)
 })
 
 test('supports shareable conversion-option URLs without storing document state', () => {

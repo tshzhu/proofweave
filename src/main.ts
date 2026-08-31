@@ -60,7 +60,7 @@ const downloadOutput = requireElement<HTMLButtonElement>('#download-output')
 const copyStatus = requireElement<HTMLElement>('#copy-status')
 const fileMessage = requireElement<HTMLElement>('#editor-file-message')
 const cliCommandOutput = requireElement<HTMLElement>('#cli-command')
-const urlCommandOutput = requireElement<HTMLTextAreaElement>('#url-command')
+const urlCommandOutput = requireElement<HTMLElement>('#url-command')
 const cliCopy = requireElement<HTMLButtonElement>('#cli-copy')
 const urlCopy = requireElement<HTMLButtonElement>('#url-copy')
 const transposeExpressionInput = requireElement<HTMLInputElement>('#transpose-expression')
@@ -253,7 +253,7 @@ function renderCLICommand(): void {
   const shareUrl = shareUrlForOptions(window.location.href, options)
   if (shareUrl !== lastShareUrl) {
     lastShareUrl = shareUrl
-    urlCommandOutput.value = shareUrl
+    urlCommandOutput.textContent = shareUrl
     urlCommandOutput.title = shareUrl
     urlCommandOutput.dataset.url = shareUrl
   }
@@ -470,10 +470,13 @@ async function copyShareValue(text: string, button: HTMLButtonElement): Promise<
   } catch {
     const previous = document.activeElement
     if (button === urlCopy) {
-      urlCommandOutput.focus()
-      urlCommandOutput.select()
+      const range = document.createRange()
+      range.selectNodeContents(urlCommandOutput)
+      const selection = window.getSelection()
+      selection?.removeAllRanges()
+      selection?.addRange(range)
       document.execCommand('copy')
-      urlCommandOutput.setSelectionRange(0, 0)
+      selection?.removeAllRanges()
     } else {
       const range = document.createRange()
       range.selectNodeContents(cliCommandOutput)
@@ -653,7 +656,7 @@ clearInput.addEventListener('click', () => {
 
 editorCopy.addEventListener('click', () => void copyText(currentText()))
 cliCopy.addEventListener('click', () => void copyShareValue(cliCommandOutput.dataset.command ?? '', cliCopy))
-urlCopy.addEventListener('click', () => void copyShareValue(urlCommandOutput.value, urlCopy))
+urlCopy.addEventListener('click', () => void copyShareValue(urlCommandOutput.dataset.url ?? '', urlCopy))
 
 primaryAction.addEventListener('click', () => {
   if (view === 'markdown') setView('latex')

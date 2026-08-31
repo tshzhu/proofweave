@@ -38,8 +38,8 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
-  unifySetNotation: false,
-  unifyTransposeNotation: false,
+  unifySetNotation: true,
+  unifyTransposeNotation: true,
   transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
 }
 
@@ -577,12 +577,16 @@ function isTransposeAtom(value: string): boolean {
 function transposeOperandEnd(value: string, start: number): number | undefined {
   if (value[start] === '{') {
     const end = groupEnd(value, start)
-    return end !== undefined && isTransposeAtom(value.slice(start + 1, end - 1)) ? end : undefined
+    if (end === undefined || !isTransposeAtom(value.slice(start + 1, end - 1))) return undefined
+    return /[A-Za-z@]/.test(value[end] ?? '') ? undefined : end
   }
-  if (value[start] === 'T') return start + 1
+  if (value[start] === 'T') return /[A-Za-z@]/.test(value[start + 1] ?? '') ? undefined : start + 1
   if (value[start] !== '\\') return undefined
   const command = commandAt(value, start)
-  if (command === '\\top' || command === '\\intercal' || command === '\\transpose') return start + command.length
+  if (command === '\\top' || command === '\\intercal' || command === '\\transpose') {
+    const end = start + command.length
+    return /[A-Za-z@]/.test(value[end] ?? '') ? undefined : end
+  }
   if (!isTransposeFontCommand(command)) return undefined
   const groupStart = start + command.length
   let cursor = groupStart
@@ -621,11 +625,18 @@ function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): st
       continue
     }
     if (value[index] === '^') {
+      const previous = value[index - 1] ?? ''
+      if (!/[\p{L}\p{N})\]}]/u.test(previous) && previous !== '\\') {
+        result += value[index]
+        index += 1
+        continue
+      }
       let operandStart = index + 1
       while (/[ \t]/.test(value[operandStart] ?? '')) operandStart += 1
       const operandEnd = transposeOperandEnd(value, operandStart)
       if (operandEnd !== undefined && value.slice(operandStart, operandEnd).trim() !== '\\transpose') {
-        result += '^\\transpose'
+        const commandSeparator = /[A-Za-z@]/.test(value[operandEnd] ?? '') ? ' ' : ''
+        result += `^\\transpose${commandSeparator}`
         usage && (usage.transposeNotation = true)
         index = operandEnd
         continue
@@ -634,6 +645,21 @@ function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): st
     if (value[index] === '{') {
       const end = groupEnd(value, index)
       if (end !== undefined) {
+        const scriptArgument = result.endsWith('^')
+        if (scriptArgument && isTransposeAtom(value.slice(index + 1, end - 1))) {
+          const previous = result[result.length - 2] ?? ''
+          const next = value[end] ?? ''
+          const operand = value.slice(index + 1, end - 1).trim()
+          const transposeContext = /[\p{L}\p{N})\]}]/u.test(previous)
+            && !(operand === 'T' && /[A-Za-z@]/.test(next))
+          if (transposeContext) {
+            const commandSeparator = /[A-Za-z@]/.test(next) ? ' ' : ''
+            result = `${result.slice(0, -1)}^\\transpose${commandSeparator}`
+            usage && (usage.transposeNotation = true)
+            index = end
+            continue
+          }
+        }
         result += `{${normalizeTransposeNotation(value.slice(index + 1, end - 1), usage)}}`
         index = end
         continue
@@ -643,6 +669,17 @@ function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): st
     index += 1
   }
   return result
+}
+
+function normalizeSemanticNotation(
+  value: string,
+  cleanup: MathCleanupOptions,
+  usage?: MathCleanupUsage,
+): string {
+  let normalized = value
+  if (cleanup.unifySetNotation) normalized = normalizeSetNotation(normalized, usage)
+  if (cleanup.unifyTransposeNotation) normalized = normalizeTransposeNotation(normalized, usage)
+  return normalized
 }
 
 function singleFontAtomEnd(value: string, start: number): number | undefined {
@@ -717,6 +754,8 @@ function formatNestedMathGroups(
   value: string,
   options: MathSpacingOptions,
   collapseSpaces: boolean,
+  cleanup?: MathCleanupOptions,
+  usage?: MathCleanupUsage,
 ): string {
   let result = ''
   for (let index = 0; index < value.length;) {
@@ -733,7 +772,7 @@ function formatNestedMathGroups(
           const inner = value.slice(index + 1, end - 1)
           const shouldFormat = !PRESERVE_GROUP_COMMANDS.has(base) && /\\[A-Za-z]/.test(inner)
           result += shouldFormat
-            ? `{${formatMathCode(inner, options, collapseSpaces)}}`
+            ? `{${formatMathCode(inner, options, collapseSpaces, false, cleanup, usage)}}`
             : value.slice(index, end)
           index = end
           continue
@@ -744,7 +783,7 @@ function formatNestedMathGroups(
         const end = groupEnd(value, index)
         if (end === undefined) break
         const inner = value.slice(index + 1, end - 1)
-        result += `{${formatMathCode(inner, options, collapseSpaces)}}`
+        result += `{${formatMathCode(inner, options, collapseSpaces, false, cleanup, usage)}}`
         index = end
       }
       continue
@@ -759,7 +798,7 @@ function formatNestedMathGroups(
         if (end !== undefined) {
           const inner = value.slice(index + 1, end - 1)
           const scriptValue = /\\[A-Za-z]/.test(inner)
-            ? formatMathCode(inner, { ...options, punctuation: false }, collapseSpaces)
+            ? formatMathCode(inner, { ...options, punctuation: false }, collapseSpaces, true, cleanup, usage)
             : inner
           result += `{${scriptValue}}`
           index = end
@@ -772,7 +811,7 @@ function formatNestedMathGroups(
       const end = groupEnd(value, index)
       if (end !== undefined) {
         const inner = value.slice(index + 1, end - 1)
-        result += `{${formatMathCode(inner, options, collapseSpaces)}}`
+        result += `{${formatMathCode(inner, options, collapseSpaces, false, cleanup, usage)}}`
         index = end
         continue
       }
@@ -1252,13 +1291,16 @@ function formatMathCode(
   options: MathSpacingOptions,
   collapseSpaces: boolean,
   scriptNested = false,
+  cleanup?: MathCleanupOptions,
+  usage?: MathCleanupUsage,
 ): string {
   if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_^]/.test(value)) return value
   const match = /^([ \t]*)(.*?)([ \t]*)$/.exec(value)
   const leading = match?.[1] ?? ''
   const core = match?.[2] ?? value
   const trailing = match?.[3] ?? ''
-  const normalizedCore = formatNestedMathGroups(core, options, collapseSpaces)
+  const semanticCore = cleanup ? normalizeSemanticNotation(core, cleanup, usage) : core
+  const normalizedCore = formatNestedMathGroups(semanticCore, options, collapseSpaces, cleanup, usage)
   const tokens = tokenizeLine(normalizedCore)
   if (tokens.length < 2) return leading + normalizedCore + trailing
 
@@ -1278,11 +1320,17 @@ function formatMathCode(
   return leading + result + trailing
 }
 
-function formatLine(value: string, options: MathSpacingOptions, collapseSpaces: boolean): string {
+function formatLine(
+  value: string,
+  options: MathSpacingOptions,
+  collapseSpaces: boolean,
+  cleanup?: MathCleanupOptions,
+  usage?: MathCleanupUsage,
+): string {
   const comment = commentStart(value)
   const code = comment < 0 ? value : value.slice(0, comment)
-  if (comment < 0) return formatMathCode(code, options, collapseSpaces)
-  return formatMathCode(code, options, collapseSpaces) + value.slice(comment)
+  if (comment < 0) return formatMathCode(code, options, collapseSpaces, false, cleanup, usage)
+  return formatMathCode(code, options, collapseSpaces, false, cleanup, usage) + value.slice(comment)
 }
 
 function collapseMathSpacesOnly(value: string): string {
@@ -1312,12 +1360,11 @@ export function formatMathSpacing(
   if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_^]/.test(value)) return value
   const referenced = normalizeMathReferences(value, cleanup.normalizeLabelPrefixes)
   let normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
-  if (cleanup.unifySetNotation) normalized = normalizeSetNotation(normalized, usage)
-  if (cleanup.unifyTransposeNotation) normalized = normalizeTransposeNotation(normalized, usage)
+  normalized = normalizeSemanticNotation(normalized, cleanup, usage)
   if (!options.enabled) {
     return cleanup.collapseSpaces
       ? normalized.split('\n').map(collapseMathSpacesOnly).join('\n')
       : normalized
   }
-  return normalized.split('\n').map((line) => formatLine(line, options, cleanup.collapseSpaces)).join('\n')
+  return normalized.split('\n').map((line) => formatLine(line, options, cleanup.collapseSpaces, cleanup, usage)).join('\n')
 }

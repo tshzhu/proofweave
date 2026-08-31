@@ -277,11 +277,11 @@
               <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
             </label>
             <label class="option-row">
-              <input type="checkbox" data-cleanup-rule="unifySetNotation" />
+              <input type="checkbox" data-cleanup-rule="unifySetNotation" checked />
               <span>Unify set notation <small><code>\{x\}</code> → <code>\set{x}</code></small></span>
             </label>
             <label class="option-row cleanup-expression-row">
-              <input type="checkbox" data-cleanup-rule="unifyTransposeNotation" />
+              <input type="checkbox" data-cleanup-rule="unifyTransposeNotation" checked />
               <span>Unify transpose notation <small><code>^{T}</code> → <code>^\transpose</code></small></span>
               <input
                 id="transpose-expression"
@@ -308,17 +308,6 @@
           </div>
         </details>
 
-        <details id="url-panel">
-          <summary>URL</summary>
-          <div class="share-panel-content">
-            <p>Share this URL to reuse the current conversion options:</p>
-            <div class="share-field">
-              <textarea id="url-command" rows="2" readonly aria-label="Shareable ProofWeave URL"></textarea>
-              <button id="url-copy" class="share-copy" type="button" aria-label="Copy shareable URL" title="Copy shareable URL">Copy</button>
-            </div>
-          </div>
-        </details>
-
         <details id="cli-panel">
           <summary>CLI</summary>
           <div class="cli-panel-content">
@@ -326,6 +315,17 @@
             <div class="share-field">
               <code id="cli-command">proofweave YOUR_FILE.md</code>
               <button id="cli-copy" class="share-copy" type="button" aria-label="Copy CLI command" title="Copy CLI command">Copy</button>
+            </div>
+          </div>
+        </details>
+
+        <details id="url-panel">
+          <summary>URL</summary>
+          <div class="share-panel-content">
+            <p>Share this URL to reuse the current conversion options:</p>
+            <div class="share-field">
+              <code id="url-command" aria-label="Shareable ProofWeave URL"></code>
+              <button id="url-copy" class="share-copy" type="button" aria-label="Copy shareable URL" title="Copy shareable URL">Copy</button>
             </div>
           </div>
         </details>
