@@ -95,8 +95,8 @@ test('serializes and parses all independent cleanup options', () => {
     normalizeLabelPrefixes: true,
     fontCommandBraces: true,
     collapseSpaces: true,
-    unifySetNotation: false,
-    unifyTransposeNotation: false,
+    unifySetNotation: true,
+    unifyTransposeNotation: true,
     transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
   })
   for (const [key, flag] of [
@@ -112,13 +112,11 @@ test('serializes and parses all independent cleanup options', () => {
     assert.equal(parseCLIArguments([`--${flag}`]).options.cleanup[key], true)
   }
   const setEnabled = cloneConverterOptions()
-  setEnabled.cleanup.unifySetNotation = true
-  assert.ok(optionsToCLIArgs(setEnabled).includes('--unify-set-notation'))
+  assert.doesNotMatch(cliCommand(setEnabled), /unify-set-notation/)
   assert.equal(parseCLIArguments(['--unify-set-notation']).options.cleanup.unifySetNotation, true)
   assert.equal(parseCLIArguments(['--no-unify-set-notation']).options.cleanup.unifySetNotation, false)
   const enabled = cloneConverterOptions()
-  enabled.cleanup.unifyTransposeNotation = true
-  assert.ok(optionsToCLIArgs(enabled).includes('--unify-transpose'))
+  assert.doesNotMatch(cliCommand(enabled), /unify-transpose/)
   assert.equal(parseCLIArguments(['--unify-transpose']).options.cleanup.unifyTransposeNotation, true)
   const configured = cloneConverterOptions()
   configured.cleanup.transposeExpression = String.raw`\mathbf{T}`

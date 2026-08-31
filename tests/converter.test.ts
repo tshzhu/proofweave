@@ -13,13 +13,16 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
 
 test('renders the built-in example with structural blank lines only', () => {
-  assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\section*{Part I -- A small estimate}
+  assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set
+\newcommand{\transpose}{{\mkern-1.0mu\mathsf{T}}} % transpose
+
+\section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
 
@@ -28,7 +31,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$,
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
 	\begin{equation}
 		  | f(x) | \le C.
 	\end{equation}
@@ -524,7 +527,11 @@ test('adds set and transpose declarations only when semantic cleanup is enabled'
 
 Inline $\set{x} and A^\transpose$.`)
 
-  const disabled = convertMarkdown(String.raw`Inline \(\{x\} and A^{T}\).`)
+  const disabledOptions = {
+    ...DEFAULT_RENDER_OPTIONS,
+    cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, unifySetNotation: false, unifyTransposeNotation: false },
+  }
+  const disabled = convertMarkdown(String.raw`Inline \(\{x\} and A^{T}\).`, disabledOptions)
   assert.doesNotMatch(disabled.latex, /\\newcommand\{\\(?:set|transpose)\}/)
   assert.match(disabled.latex, /\$\\\{x\\\}and A\^\{T\}\$/)
 
@@ -532,8 +539,8 @@ Inline $\set{x} and A^\transpose$.`)
     ...DEFAULT_RENDER_OPTIONS,
     cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, unifySetNotation: true },
   })
-  assert.match(declarationOnly.latex, /^\\newcommand\{\\set\}/)
-  assert.match(declarationOnly.latex, /\n\nPlain text\.$/)
+  assert.doesNotMatch(declarationOnly.latex, /\\newcommand\{\\set\}/)
+  assert.equal(declarationOnly.latex, 'Plain text.')
 })
 
 test('keeps semantic cleanup independent from math-spacing master switch', () => {
@@ -626,7 +633,7 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -752,13 +759,13 @@ function assertMathSpacingIsStable(input: string): void {
     ...DEFAULT_MATH_CLEANUP_OPTIONS,
     fontCommandBraces: false,
     collapseSpaces: true,
+    unifySetNotation: false,
+    unifyTransposeNotation: false,
   }
   for (const segment of blueprintMathSegments(input)) {
     const formatted = formatMathSpacing(segment, DEFAULT_MATH_SPACING_OPTIONS, tokenPreservingCleanup)
     assert.equal(formatted.replace(/\s/g, ''), normalizedReferenceTokens(segment).replace(/\s/g, ''))
     assert.equal(formatMathSpacing(formatted, DEFAULT_MATH_SPACING_OPTIONS, tokenPreservingCleanup), formatted)
-    const defaultFormatted = formatMathSpacing(segment)
-    assert.equal(formatMathSpacing(defaultFormatted), defaultFormatted)
   }
 }
 

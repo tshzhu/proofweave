@@ -13,7 +13,7 @@ This Markdown note is kept as LaTeX comments.
 
 ### statement
 
-For every \(x\in\mathcal X\),
+For every \(x\in\mathcal X\), define \(S = \{v \in \mathbb R^d : v^{\mathsf{T}} v \le 1\}\). Then
 \[
   |f(x)| \le C.
 \]

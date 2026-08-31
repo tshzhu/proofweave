@@ -28,7 +28,7 @@ This Markdown note is kept as LaTeX comments.
 
 ### statement
 
-For every \(x\in\mathcal X\),
+For every \(x\in\mathcal X\), define \(S = \{v \in \mathbb R^d : v^{\mathsf{T}} v \le 1\}\). Then
 \[
   |f(x)| \le C.
 \]
@@ -60,6 +60,9 @@ After `proofweave proof.md` with the default options:
 
 <!-- proofweave-example-output:start -->
 ```latex
+\newcommand{\set}[1]{\left\{#1\right\}} % set
+\newcommand{\transpose}{{\mkern-1.0mu\mathsf{T}}} % transpose
+
 \section*{Part I -- A small estimate}
 
 This example demonstrates headings, theorem environments, lists, and math.
@@ -69,7 +72,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$,
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
 	\begin{equation}
 		  | f(x) | \le C.
 	\end{equation}
@@ -104,7 +107,9 @@ This is LaTeX body content, not a complete document. The leading indentation
 above consists of tabs because `--indent=tab` is the default. The default
 formatter also normalizes math spacing, braces `\mathcal{X}`, uses `equation`
 inside statements, creates canonical labels, and removes the proof-final
-`\square` because LaTeX's `proof` environment supplies the QED symbol.
+`\square` because LaTeX's `proof` environment supplies the QED symbol. The
+example also shows the default set/transpose cleanup and its two declarations;
+declarations are emitted only when a matching expression was actually changed.
 
 HTML-style Markdown comments `<!-- ... -->` are converted to safe, line-by-line
 LaTeX comments. A multi-line comment becomes one `%` line per content line; the
@@ -198,11 +203,9 @@ Value options accept either `--option=value` or `--option value`.
 
 ### Cleanup and math-spacing options
 
-The existing cleanup options and the math-spacing master/rules are enabled by default.
-The semantic notation options are disabled by default because they
-introduce custom commands and intentionally change notation. Both positive and
-negative forms are accepted, for example `--remove-boxed` and
-`--no-remove-boxed`.
+All cleanup options and the math-spacing master/rules are enabled by default.
+Both positive and negative forms are accepted, for example `--remove-boxed`
+and `--no-remove-boxed`.
 Cleanup options remain effective when `--no-math-spacing` is used; the six
 math-spacing subrules are effective only while `--math-spacing` is enabled.
 
@@ -212,8 +215,8 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
 | `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
 | `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
-| `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (disabled by default). |
-| `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (disabled by default). |
+| `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (enabled by default). |
+| `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (enabled by default). |
 | `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |
 | `--[no-]math-spacing` | Enable or disable the math whitespace formatter as a whole. |
 | `--[no-]relations` | Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`. |
@@ -229,11 +232,12 @@ an `equation` environment and receives an owner-aware label such as
 `\eqref{eqn:main-N}`. Math-styled theorem references such as
 `\mathrm{lem:example}` become `\ref{lem:example}`.
 
-When semantic notation cleanup is enabled, the generated body starts with the
-corresponding `\newcommand` declaration:
+When semantic notation cleanup actually changes a matching expression, the
+generated body starts with the corresponding `\newcommand` declaration:
 `\set` uses `\left\{#1\right\}`, while `\transpose` uses the configured
-expression wrapped in a definition. These declarations are emitted before any
-other body content, including comments.
+expression wrapped in a definition. Enabled cleanup with no matching conversion
+does not emit an unused declaration. Declarations appear before any other body
+content, including comments.
 
 ### Command examples
 
@@ -289,18 +293,17 @@ Disable all optional math whitespace formatting:
 proofweave --no-math-spacing proof.md > proof.tex
 ```
 
-Unify set braces and transpose notation with a custom transpose definition:
+Disable set cleanup, or customize the default transpose definition:
 
 ```sh
 proofweave \
-  --unify-set-notation \
-  --unify-transpose \
+  --no-unify-set-notation \
   --transpose-expression='\mkern-1.0mu\mathsf{T}' \
   proof.md > proof.tex
 ```
 
-When these semantic cleanup options are enabled, the generated LaTeX starts
-with the required `\newcommand` declarations before the converted body.
+When semantic cleanup modifies the input, the generated LaTeX starts with the
+required `\newcommand` declaration before the converted body.
 
 ### Exit behavior
 
@@ -335,9 +338,9 @@ for example:
 https://tshzhu.github.io/proofweave/?opt=%7B%22v%22%3A1%2C%22args%22%3A%5B%22--indent%3D4%22%2C%22--no-remove-boxed%22%5D%7D
 ```
 
-The sidebar's **URL** section shows this clean shareable URL and provides a
-copy button. The **CLI** section shows the equivalent local command and has its
-own copy button.
+The sidebar's **CLI** section shows the equivalent local command and has its own
+copy button. The following **URL** section shows the clean shareable URL and
+provides a separate copy button. Both fields wrap and display their full content.
 
 Opening that link restores the conversion settings and updates the form before
 the first conversion. Changing a setting updates the URL with
