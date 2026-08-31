@@ -29,6 +29,47 @@ function cleanup(overrides: Partial<MathCleanupOptions> = {}): MathCleanupOption
   return { ...DEFAULT_MATH_CLEANUP_OPTIONS, ...overrides }
 }
 
+test('unifies matched set-brace size variants and preserves opaque text', () => {
+  const configured = cleanup({ unifySetNotation: true })
+  const input = String.raw`\{x \in A\} + \big\{y\big\} + \Bigl\{z\Bigr\} + \left\{w\right\} + \left\lbrace q \right\rbrace + \text{literal \{q\}}`
+  const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, configured)
+  assert.equal(output, String.raw`\set{x \in A} + \set{y} + \set{z} + \set{w} + \set{q} + \text{literal \{q\}}`)
+  assert.equal(formatMathSpacing(output, DEFAULT_MATH_SPACING_OPTIONS, configured), output)
+})
+
+test('handles nested, multiline, and unmatched set delimiters conservatively', () => {
+  const configured = cleanup({ unifySetNotation: true })
+  assert.equal(
+    formatMathSpacing(String.raw`\{a, \{b\}\}` , DEFAULT_MATH_SPACING_OPTIONS, configured),
+    String.raw`\set{a, \set{b}}`,
+  )
+  assert.equal(
+    formatMathSpacing(String.raw`\left\{a
+  \big\{b\big\}
+\right\}`, DEFAULT_MATH_SPACING_OPTIONS, configured),
+    String.raw`\set{a
+  \set{b}}`,
+  )
+  assert.equal(
+    formatMathSpacing(String.raw`\left\{a \big\{b\big\}`, DEFAULT_MATH_SPACING_OPTIONS, configured),
+    String.raw`\left\{a \set{b}`,
+  )
+})
+
+test('unifies transpose spellings and leaves non-transpose superscripts unchanged', () => {
+  const configured = cleanup({
+    unifyTransposeNotation: true,
+    transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
+  })
+  const input = String.raw`A^T + B^{T} + C^{\top} + D^{\intercal} + E^{\text{T}} + F^{\textbf{T}} + G^{\mathsf{T}} + H^{\mathbf{T}} + I^{T+1} + J^\transpose`
+  const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, configured)
+  assert.equal(output, String.raw`A^\transpose + B^\transpose + C^\transpose + D^\transpose + E^\transpose + F^\transpose + G^\transpose + H^\transpose + I^{T+1} + J^\transpose`)
+  assert.equal(formatMathSpacing(output, DEFAULT_MATH_SPACING_OPTIONS, configured), output)
+  assert.equal(formatMathSpacing(String.raw`\text{A^T}`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`\text{A^T}`)
+  const unbraced = cleanup({ ...configured, fontCommandBraces: false })
+  assert.equal(formatMathSpacing('A^T + B^\\mathsf T + C^\\text*{T} + D^\\mathsf*{T}', DEFAULT_MATH_SPACING_OPTIONS, unbraced), 'A^\\transpose + B^\\transpose + C^\\transpose + D^\\transpose')
+})
+
 test('formats the requested examples without changing mathematical tokens', () => {
   const examples = new Map([
     ['n<1', 'n < 1'],

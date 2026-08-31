@@ -13,7 +13,7 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
@@ -348,7 +348,7 @@ c &= d
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -509,6 +509,49 @@ test('removes boxed commands by default and preserves them when disabled', () =>
   assert.match(kept.latex, /\\boxed\{z = 1\}/)
 })
 
+test('adds set and transpose declarations only when semantic cleanup is enabled', () => {
+  const options = {
+    ...DEFAULT_RENDER_OPTIONS,
+    cleanup: {
+      ...DEFAULT_RENDER_OPTIONS.cleanup,
+      unifySetNotation: true,
+      unifyTransposeNotation: true,
+    },
+  }
+  const result = convertMarkdown(String.raw`Inline \(\{x\} and A^{\mathrm{T}}\).`, options)
+  assert.equal(result.latex, String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set
+\newcommand{\transpose}{{\mkern-1.0mu\mathsf{T}}} % transpose
+
+Inline $\set{x} and A^\transpose$.`)
+
+  const disabled = convertMarkdown(String.raw`Inline \(\{x\} and A^{T}\).`)
+  assert.doesNotMatch(disabled.latex, /\\newcommand\{\\(?:set|transpose)\}/)
+  assert.match(disabled.latex, /\$\\\{x\\\}and A\^\{T\}\$/)
+
+  const declarationOnly = convertMarkdown('Plain text.', {
+    ...DEFAULT_RENDER_OPTIONS,
+    cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, unifySetNotation: true },
+  })
+  assert.match(declarationOnly.latex, /^\\newcommand\{\\set\}/)
+  assert.match(declarationOnly.latex, /\n\nPlain text\.$/)
+})
+
+test('keeps semantic cleanup independent from math-spacing master switch', () => {
+  const options = {
+    ...DEFAULT_RENDER_OPTIONS,
+    mathSpacing: { ...DEFAULT_RENDER_OPTIONS.mathSpacing, enabled: false },
+    cleanup: {
+      ...DEFAULT_RENDER_OPTIONS.cleanup,
+      unifySetNotation: true,
+      unifyTransposeNotation: true,
+    },
+  }
+  const result = convertMarkdown(String.raw`\(\big\{x\big\} + A^{\top}\)`, options)
+  assert.match(result.latex, /\\newcommand\{\\set\}/)
+  assert.match(result.latex, /\\newcommand\{\\transpose\}/)
+  assert.match(result.latex, /\$\\set\{x\} \+ A\^\\transpose\$/)
+})
+
 test('renders nested lists, bold, italic, code, and plain special characters', () => {
   const result = convertMarkdown(String.raw`- **First** and *second* item
   - Nested \(x_1\)
@@ -583,7 +626,7 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 

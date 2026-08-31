@@ -4,6 +4,7 @@ import {
   DEFAULT_MATH_SPACING_OPTIONS,
   formatMathSpacing,
   type MathCleanupOptions,
+  type MathCleanupUsage,
   type MathSpacingOptions,
 } from "./math-spacing.ts";
 
@@ -53,11 +54,12 @@ function normalizeMathBody(
   value: string,
   spacing: MathSpacingOptions,
   cleanup: MathCleanupOptions & { removeBoxed: boolean },
+  usage?: MathCleanupUsage,
 ): string {
   const cleaned = cleanup.removeBoxed && value.includes("\\boxed")
     ? removeBoxedCommands(value)
     : value;
-  return formatMathSpacing(cleaned, spacing, cleanup);
+  return formatMathSpacing(cleaned, spacing, cleanup, usage);
 }
 
 function escapePlainText(value: string): string {
@@ -226,6 +228,7 @@ export function renderInline(
     removeBoxed: true,
   },
   transformPlain?: (value: string) => string,
+  usage?: MathCleanupUsage,
 ): string {
   const pieces: string[] = [];
   let plain = "";
@@ -240,7 +243,7 @@ export function renderInline(
       const close = value.indexOf("\\)", index + 2);
       if (close >= 0) {
         flush();
-        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 2, close), spacing, cleanup)}${delimiters[1]}`);
+        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 2, close), spacing, cleanup, usage)}${delimiters[1]}`);
         index = close + 2;
         continue;
       }
@@ -256,7 +259,7 @@ export function renderInline(
       const close = findUnescaped(value, "$", index + 1);
       if (close >= 0 && value[close + 1] !== "$") {
         flush();
-        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 1, close), spacing, cleanup)}${delimiters[1]}`);
+        pieces.push(`${delimiters[0]}${normalizeMathBody(value.slice(index + 1, close), spacing, cleanup, usage)}${delimiters[1]}`);
         index = close + 1;
         continue;
       }
@@ -279,8 +282,9 @@ export function renderDisplay(
     removeBoxed: true,
   },
   equationLabel?: string,
+  usage?: MathCleanupUsage,
 ): string {
-  const normalizedBody = normalizeMathBody(body.replace(/^\n+|\n+$/g, ""), spacing, cleanup);
+  const normalizedBody = normalizeMathBody(body.replace(/^\n+|\n+$/g, ""), spacing, cleanup, usage);
   const indentedBody = normalizedBody
     .split("\n")
     .map((line) => (line ? `${indent}${line}` : line))

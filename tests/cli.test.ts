@@ -133,6 +133,23 @@ test('toggles boxed cleanup through the CLI without drifting from the shared cor
   assert.match(keepResult.stdout, /\\boxed/)
 })
 
+test('applies set and transpose notation cleanup through the CLI', () => {
+  const markdown = String.raw`Inline \(\big\{x\big\} and A^{\mathrm{T}}\).`
+  const options = cloneConverterOptions()
+  options.cleanup.unifySetNotation = true
+  options.cleanup.unifyTransposeNotation = true
+  options.cleanup.transposeExpression = String.raw`\mathsf{T}`
+  const result = runCLI([
+    '--unify-set-notation',
+    '--unify-transpose',
+    String.raw`--transpose-expression=\mathsf{T}`,
+  ], markdown)
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, convertMarkdown(markdown, options).latex)
+  assert.match(result.stdout, /\\newcommand\{\\set\}/)
+  assert.match(result.stdout, /\\newcommand\{\\transpose\}\{\{\\mathsf\{T\}\}\}/)
+})
+
 test('shares label-prefix cleanup across theorem labels and existing references', () => {
   const markdown = String.raw`## proposition prop:claim
 
