@@ -204,7 +204,12 @@ test('provides copy controls for the shareable URL and CLI command', () => {
 })
 
 test('shows complete URL and CLI content with the same code-field style', () => {
+  assert.equal((html.match(/class="share-panel-content"/g) ?? []).length, 2)
+  assert.doesNotMatch(html, /class="cli-panel-content"/)
+  assert.match(css, /\.share-panel-content\s*\{[\s\S]*width:\s*calc\(100% - 16px\)[\s\S]*min-width:\s*0/)
+  assert.match(css, /\.share-field\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) 50px[\s\S]*width:\s*100%[\s\S]*min-width:\s*0/)
   assert.match(css, /\.share-field > #url-command,[\s\S]*\.share-field > #cli-command\s*\{[\s\S]*width:\s*100%[\s\S]*min-width:\s*0/)
+  assert.match(css, /\.share-copy\s*\{[\s\S]*width:\s*50px/)
   assert.match(css, /#url-command,[\s\S]*#cli-command\s*\{[\s\S]*overflow-wrap:\s*anywhere[\s\S]*white-space:\s*normal/)
   assert.doesNotMatch(detailsSection('URL'), /<textarea/)
 })
