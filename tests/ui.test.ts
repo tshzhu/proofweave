@@ -192,6 +192,12 @@ test('provides copy controls for the shareable URL and CLI command', () => {
   assert.match(main, /copyShareValue\(urlCommandOutput\.value/)
 })
 
+test('aligns URL and CLI text areas while preserving their distinct overflow behavior', () => {
+  assert.match(css, /\.share-field > textarea,[\s\S]*\.share-field > #cli-command\s*\{[\s\S]*width:\s*100%[\s\S]*min-width:\s*0/)
+  assert.match(css, /\.share-field textarea\s*\{[\s\S]*resize:\s*vertical[\s\S]*overflow:\s*auto[\s\S]*overflow-wrap:\s*anywhere/)
+  assert.match(css, /#cli-command\s*\{[\s\S]*overflow-wrap:\s*anywhere[\s\S]*white-space:\s*normal/)
+})
+
 test('supports shareable conversion-option URLs without storing document state', () => {
   assert.match(optionsSource, /OPTIONS_URL_PARAMETER = ['"]opt['"];/)
   assert.match(optionsSource, /OPTIONS_URL_VERSION = 1/)
