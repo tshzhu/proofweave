@@ -147,6 +147,20 @@ export function optionsToUrlSearch(options: Readonly<ConverterOptions>): string 
   return search.toString();
 }
 
+export function shareUrlForOptions(
+  currentHref: string,
+  options: Readonly<ConverterOptions>,
+): string {
+  const url = new URL(currentHref);
+  url.searchParams.delete(OPTIONS_URL_PARAMETER);
+  const encoded = optionsToUrlSearch(options);
+  if (encoded) {
+    const value = new URLSearchParams(encoded).get(OPTIONS_URL_PARAMETER);
+    if (value !== null) url.searchParams.set(OPTIONS_URL_PARAMETER, value);
+  }
+  return url.href;
+}
+
 export function optionsFromUrlSearch(search: string): {
   options: ConverterOptions;
   error?: string;

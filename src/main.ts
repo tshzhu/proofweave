@@ -15,6 +15,7 @@ import {
   optionsToCLIArgs,
   optionsFromUrlSearch,
   optionsToUrlSearch,
+  shareUrlForOptions,
   type ConverterOptions,
 } from './options.ts'
 import {
@@ -240,14 +241,7 @@ function renderCLICommand(): void {
     cliCommandOutput.append('YOUR_FILE.md')
     cliCommandOutput.dataset.command = command
   }
-  const url = new URL(window.location.href)
-  url.searchParams.delete('opt')
-  const encoded = optionsToUrlSearch(options)
-  if (encoded) {
-    const value = new URLSearchParams(encoded).get('opt')
-    if (value !== null) url.searchParams.set('opt', value)
-  }
-  const shareUrl = `${url.origin}${url.pathname}${url.search}${url.hash}`
+  const shareUrl = shareUrlForOptions(window.location.href, options)
   if (shareUrl !== lastShareUrl) {
     lastShareUrl = shareUrl
     urlCommandOutput.value = shareUrl

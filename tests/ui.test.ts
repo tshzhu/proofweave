@@ -199,6 +199,7 @@ test('supports shareable conversion-option URLs without storing document state',
   assert.match(optionsSource, /export function optionsFromUrlSearch/)
   assert.match(main, /optionsFromUrlSearch\(window\.location\.search\)/)
   assert.match(main, /optionsToUrlSearch\(options\)/)
+  assert.match(main, /shareUrlForOptions\(window\.location\.href, options\)/)
   assert.match(main, /history\.replaceState\(null, '', next\)/)
   assert.match(main, /url\.searchParams\.delete\('opt'\)/)
   assert.match(main, /restoredOptions\.error/)

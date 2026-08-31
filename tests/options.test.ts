@@ -9,6 +9,7 @@ import {
   optionsToCLIArgs,
   optionsFromUrlSearch,
   optionsToUrlSearch,
+  shareUrlForOptions,
   parseCLIArguments,
 } from '../src/options.ts'
 
@@ -134,6 +135,23 @@ test('rejects malformed, unknown-version, and non-conversion URL options', () =>
     assert.ok(restored.error)
     assert.deepEqual(restored.options, DEFAULT_CONVERTER_OPTIONS)
   }
+})
+
+test('builds a share URL without losing path, hash, or unrelated parameters', () => {
+  const options = cloneConverterOptions()
+  options.indent = 2
+  const url = shareUrlForOptions(
+    'https://example.test/proofweave/?source=demo#cli',
+    options,
+  )
+  const parsed = new URL(url)
+  assert.equal(parsed.pathname, '/proofweave/')
+  assert.equal(parsed.searchParams.get('source'), 'demo')
+  assert.equal(parsed.hash, '#cli')
+  assert.deepEqual(optionsFromUrlSearch(parsed.search).options, options)
+
+  const defaults = new URL(shareUrlForOptions(url, DEFAULT_CONVERTER_OPTIONS))
+  assert.equal(defaults.searchParams.has('opt'), false)
 })
 
 test('rejects invalid values, unknown flags, conflicts, and multiple files', () => {

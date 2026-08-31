@@ -310,6 +310,10 @@ for example:
 https://tshzhu.github.io/proofweave/?opt=%7B%22v%22%3A1%2C%22args%22%3A%5B%22--indent%3D4%22%2C%22--no-remove-boxed%22%5D%7D
 ```
 
+The sidebar's **URL** section shows this clean shareable URL and provides a
+copy button. The **CLI** section shows the equivalent local command and has its
+own copy button.
+
 Opening that link restores the conversion settings and updates the form before
 the first conversion. Changing a setting updates the URL with
 `history.replaceState`, so the page is not reloaded. Returning to the default
