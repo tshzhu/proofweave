@@ -19,6 +19,7 @@ import {
   DEFAULT_CONVERTER_OPTIONS,
   type ConverterOptions,
 } from "./options.ts";
+import type { MathCleanupUsage } from "./math-spacing.ts";
 
 export const DEFAULT_RENDER_OPTIONS = DEFAULT_CONVERTER_OPTIONS;
 export type RenderOptions = ConverterOptions;
@@ -34,6 +35,7 @@ interface RenderContext {
   labels: LabelRegistry;
   theoremLabels: Map<TheoremBlock, string | undefined>;
   equations: EquationRegistry;
+  cleanupUsage: MathCleanupUsage;
 }
 
 interface EquationRecord {
@@ -196,6 +198,7 @@ function renderHeading(block: HeadingBlock, context: RenderContext, owner: strin
     context.options.mathSpacing,
     context.options.cleanup,
     (value) => convertEquationReferences(value, owner, context, block.line),
+    context.cleanupUsage,
   );
   return `\\${command}${star}{${title}}`;
 }
@@ -209,6 +212,7 @@ function renderParagraph(block: ParagraphBlock, context: RenderContext, owner: s
     context.options.mathSpacing,
     context.options.cleanup,
     (value) => convertEquationReferences(value, owner, context, block.line),
+    context.cleanupUsage,
   );
 }
 
@@ -233,6 +237,7 @@ function renderMath(
     indentation(context.options),
     context.options.cleanup,
     context.equations.byBlock.get(block)?.label,
+    context.cleanupUsage,
   );
 }
 
@@ -352,11 +357,24 @@ export function renderLatex(
       byOwnerAndTag: new Map(),
       byTag: new Map(),
     },
+    cleanupUsage: { setNotation: false, transposeNotation: false },
   };
   indexDocument(ast, context);
-  const latex = renderBlocks(ast.blocks, context, "outside")
+  const body = renderBlocks(ast.blocks, context, "outside")
     .replace(/[ \t]+$/gm, "")
     .trim();
+  const declarations: string[] = [];
+  if (options.cleanup.unifySetNotation) {
+    declarations.push(String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set`);
+  }
+  if (options.cleanup.unifyTransposeNotation) {
+    declarations.push(`\\newcommand{\\transpose}{{${options.cleanup.transposeExpression}}} % transpose`);
+  }
+  const latex = declarations.length === 0
+    ? body
+    : body
+      ? declarations.join("\n") + "\n\n" + body
+      : declarations.join("\n");
   return { latex, diagnostics };
 }
 

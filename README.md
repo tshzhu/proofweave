@@ -198,8 +198,11 @@ Value options accept either `--option=value` or `--option value`.
 
 ### Cleanup and math-spacing options
 
-Every option in this table is enabled by default. Both positive and negative
-forms are accepted, for example `--remove-boxed` and `--no-remove-boxed`.
+The existing cleanup options and the math-spacing master/rules are enabled by default.
+The semantic notation options are disabled by default because they
+introduce custom commands and intentionally change notation. Both positive and
+negative forms are accepted, for example `--remove-boxed` and
+`--no-remove-boxed`.
 Cleanup options remain effective when `--no-math-spacing` is used; the six
 math-spacing subrules are effective only while `--math-spacing` is enabled.
 
@@ -209,6 +212,9 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
 | `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
 | `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
+| `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (disabled by default). |
+| `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (disabled by default). |
+| `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |
 | `--[no-]math-spacing` | Enable or disable the math whitespace formatter as a whole. |
 | `--[no-]relations` | Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`. |
 | `--[no-]binary-operators` | Add consistent spaces around binary operators such as `+`, `-`, `*`, and `\times`, while protecting unary signs and scripts. |
@@ -222,6 +228,12 @@ an `equation` environment and receives an owner-aware label such as
 `\label{eqn:main-N}`. Unambiguous plain-text references such as `(N)` become
 `\eqref{eqn:main-N}`. Math-styled theorem references such as
 `\mathrm{lem:example}` become `\ref{lem:example}`.
+
+When semantic notation cleanup is enabled, the generated body starts with the
+corresponding `\newcommand` declaration:
+`\set` uses `\left\{#1\right\}`, while `\transpose` uses the configured
+expression wrapped in a definition. These declarations are emitted before any
+other body content, including comments.
 
 ### Command examples
 
@@ -276,6 +288,19 @@ Disable all optional math whitespace formatting:
 ```sh
 proofweave --no-math-spacing proof.md > proof.tex
 ```
+
+Unify set braces and transpose notation with a custom transpose definition:
+
+```sh
+proofweave \
+  --unify-set-notation \
+  --unify-transpose \
+  --transpose-expression='\mkern-1.0mu\mathsf{T}' \
+  proof.md > proof.tex
+```
+
+When these semantic cleanup options are enabled, the generated LaTeX starts
+with the required `\newcommand` declarations before the converted body.
 
 ### Exit behavior
 
@@ -333,7 +358,8 @@ environments. Labels use canonical prefixes `thm`, `lem`, `pro`, `cor`, `asm`,
 Ordinary headings, paragraphs, ordered and unordered nested lists, inline math,
 display math, bold, `*italic*` → `\textit{...}`, and code spans are supported. Proof-final
 `\square` markers are removed automatically. Tagged equations receive stable
-labels and unambiguous references are converted to `\eqref`.
+labels and unambiguous references are converted to `\eqref`. Optional semantic
+cleanup can unify set braces and transpose superscripts as described above.
 
 Fenced code blocks are preserved as readable text and reported with a diagnostic;
 their headings and HTML-comment-looking lines are not parsed as document structure.

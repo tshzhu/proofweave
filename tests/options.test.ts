@@ -26,6 +26,9 @@ test('round-trips every effective web option through CLI arguments', () => {
   options.outsideDisplayMath = 'dollars'
   options.sectionNumbering = 'numbered'
   options.cleanup.removeBoxed = false
+  options.cleanup.unifySetNotation = true
+  options.cleanup.unifyTransposeNotation = true
+  options.cleanup.transposeExpression = String.raw`\mathsf{T}`
   options.cleanup.normalizeLabelPrefixes = false
   options.cleanup.fontCommandBraces = false
   options.mathSpacing.punctuation = false
@@ -92,6 +95,9 @@ test('serializes and parses all independent cleanup options', () => {
     normalizeLabelPrefixes: true,
     fontCommandBraces: true,
     collapseSpaces: true,
+    unifySetNotation: false,
+    unifyTransposeNotation: false,
+    transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
   })
   for (const [key, flag] of [
     ['removeBoxed', 'remove-boxed'],
@@ -105,6 +111,28 @@ test('serializes and parses all independent cleanup options', () => {
     assert.equal(parseCLIArguments([`--no-${flag}`]).options.cleanup[key], false)
     assert.equal(parseCLIArguments([`--${flag}`]).options.cleanup[key], true)
   }
+  const setEnabled = cloneConverterOptions()
+  setEnabled.cleanup.unifySetNotation = true
+  assert.ok(optionsToCLIArgs(setEnabled).includes('--unify-set-notation'))
+  assert.equal(parseCLIArguments(['--unify-set-notation']).options.cleanup.unifySetNotation, true)
+  assert.equal(parseCLIArguments(['--no-unify-set-notation']).options.cleanup.unifySetNotation, false)
+  const enabled = cloneConverterOptions()
+  enabled.cleanup.unifyTransposeNotation = true
+  assert.ok(optionsToCLIArgs(enabled).includes('--unify-transpose'))
+  assert.equal(parseCLIArguments(['--unify-transpose']).options.cleanup.unifyTransposeNotation, true)
+  const configured = cloneConverterOptions()
+  configured.cleanup.transposeExpression = String.raw`\mathbf{T}`
+  assert.ok(optionsToCLIArgs(configured).includes(String.raw`--transpose-expression=\mathbf{T}`))
+  assert.equal(
+    parseCLIArguments([String.raw`--transpose-expression=\mathbf{T}`]).options.cleanup.transposeExpression,
+    String.raw`\mathbf{T}`,
+  )
+})
+
+test('validates transpose expressions before accepting CLI or URL options', () => {
+  assert.throws(() => parseCLIArguments(['--transpose-expression=']), /Expected a value/)
+  assert.throws(() => parseCLIArguments(['--transpose-expression=% bad']), /must not contain/)
+  assert.throws(() => parseCLIArguments(['--transpose-expression={bad']), /unbalanced braces/)
 })
 
 test('round-trips conversion options through the versioned URL payload', () => {
@@ -112,6 +140,9 @@ test('round-trips conversion options through the versioned URL payload', () => {
   options.indent = 4
   options.inlineMath = 'parentheses'
   options.cleanup.removeBoxed = false
+  options.cleanup.unifySetNotation = true
+  options.cleanup.unifyTransposeNotation = true
+  options.cleanup.transposeExpression = String.raw`\mathsf{T}`
   options.mathSpacing.enabled = false
   options.mathSpacing.relations = false
   options.mathSpacing.namedFunctions = false

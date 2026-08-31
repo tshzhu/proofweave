@@ -659,6 +659,22 @@ details[open] summary::after {
   padding: 8px 12px;
 }
 
+.cleanup-expression-row {
+  grid-template-columns: min-content minmax(0, 1fr);
+}
+
+.cleanup-expression-row .cleanup-expression {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--textfield-bg);
+  color: var(--main-fg);
+  font: var(--mono-normal);
+}
+
 .math-spacing-master {
   margin-bottom: 6px;
 }

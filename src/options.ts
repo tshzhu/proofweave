@@ -1,5 +1,6 @@
 import {
   DEFAULT_MATH_SPACING_OPTIONS,
+  DEFAULT_TRANSPOSE_EXPRESSION,
   type MathSpacingOptions,
 } from "./math-spacing.ts";
 import type { DisplayMathStyle, InlineMathStyle } from "./math.ts";
@@ -12,6 +13,9 @@ export interface CleanupOptions {
   normalizeLabelPrefixes: boolean;
   fontCommandBraces: boolean;
   collapseSpaces: boolean;
+  unifySetNotation: boolean;
+  unifyTransposeNotation: boolean;
+  transposeExpression: string;
 }
 
 export interface ConverterOptions {
@@ -34,12 +38,16 @@ export const MATH_SPACING_RULES = [
 ] as const satisfies readonly Exclude<keyof MathSpacingOptions, "enabled">[];
 
 export type MathSpacingRule = (typeof MATH_SPACING_RULES)[number];
+export type CleanupBooleanRule = Exclude<keyof CleanupOptions, "transposeExpression">;
 
 export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   removeBoxed: true,
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
+  unifySetNotation: false,
+  unifyTransposeNotation: false,
+  transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION,
 };
 
 export const DEFAULT_CONVERTER_OPTIONS: Readonly<ConverterOptions> = {
@@ -78,8 +86,10 @@ export function isMathSpacingRule(value: string | undefined): value is MathSpaci
   return MATH_SPACING_RULES.includes(value as MathSpacingRule);
 }
 
-export function isCleanupRule(value: string | undefined): value is keyof CleanupOptions {
-  return value !== undefined && value in DEFAULT_CLEANUP_OPTIONS;
+export function isCleanupRule(value: string | undefined): value is CleanupBooleanRule {
+  return value !== undefined
+    && value in DEFAULT_CLEANUP_OPTIONS
+    && typeof DEFAULT_CLEANUP_OPTIONS[value as keyof CleanupOptions] === "boolean";
 }
 
 export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] {
@@ -104,6 +114,11 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (!options.cleanup.normalizeLabelPrefixes) args.push("--no-normalize-label-prefixes");
   if (!options.cleanup.fontCommandBraces) args.push("--no-font-command-braces");
   if (!options.cleanup.collapseSpaces) args.push("--no-collapse-spaces");
+  if (options.cleanup.unifySetNotation) args.push("--unify-set-notation");
+  if (options.cleanup.unifyTransposeNotation) args.push("--unify-transpose");
+  if (options.cleanup.transposeExpression !== DEFAULT_CLEANUP_OPTIONS.transposeExpression) {
+    args.push(`--transpose-expression=${options.cleanup.transposeExpression}`);
+  }
 
   if (!options.mathSpacing.enabled) args.push("--no-math-spacing");
   const ruleFlags: Readonly<Record<MathSpacingRule, string>> = {
@@ -124,7 +139,15 @@ export function cliCommand(
   options: Readonly<ConverterOptions>,
   inputPath = "YOUR_FILE.md",
 ): string {
-  return [CLI_NAME, ...optionsToCLIArgs(options), inputPath].join(" ");
+  return [CLI_NAME, ...optionsToCLIArgs(options), inputPath]
+    .map((argument, index) => index === 0 ? argument : shellQuoteCLIArgument(argument))
+    .join(" ");
+}
+
+export function shellQuoteCLIArgument(argument: string): string {
+  return !/[\\\s'"`$;&|<>()[\]{}*!?]/.test(argument)
+    ? argument
+    : `'${argument.replaceAll("'", "'\\\"'\\\"'")}'`;
 }
 
 export const OPTIONS_URL_PARAMETER = "opt";
@@ -211,6 +234,32 @@ function parseValue<T extends string>(
   return value as T;
 }
 
+export function validateTransposeExpression(value: string): string {
+  const normalized = value.trim();
+  if (!normalized) throw new Error("Transpose expression must not be empty.");
+  if (/[\r\n]/.test(normalized)) throw new Error("Transpose expression must be a single line.");
+  for (let index = 0; index < normalized.length; index += 1) {
+    if (normalized[index] !== "%") continue;
+    let slashes = 0;
+    for (let cursor = index - 1; cursor >= 0 && normalized[cursor] === "\\"; cursor -= 1) slashes += 1;
+    if (slashes % 2 === 0) throw new Error("Transpose expression must not contain an unescaped '%'.");
+  }
+  let depth = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    if (normalized[index] === "\\") {
+      index += 1;
+      continue;
+    }
+    if (normalized[index] === "{") depth += 1;
+    else if (normalized[index] === "}") {
+      depth -= 1;
+      if (depth < 0) throw new Error("Transpose expression has unbalanced braces.");
+    }
+  }
+  if (depth !== 0) throw new Error("Transpose expression has unbalanced braces.");
+  return normalized;
+}
+
 function setBooleanOption(options: ConverterOptions, flag: string): boolean {
   const enabled = !flag.startsWith("--no-");
   const name = flag.replace(/^--(?:no-)?/, "");
@@ -218,11 +267,14 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     options.mathSpacing.enabled = enabled;
     return true;
   }
-  const cleanupRules: Readonly<Record<string, keyof CleanupOptions>> = {
+  const cleanupRules: Readonly<Record<string, CleanupBooleanRule>> = {
     "remove-boxed": "removeBoxed",
     "normalize-label-prefixes": "normalizeLabelPrefixes",
     "font-command-braces": "fontCommandBraces",
     "collapse-spaces": "collapseSpaces",
+    "unify-set-notation": "unifySetNotation",
+    "unify-transpose": "unifyTransposeNotation",
+    "unify-transpose-notation": "unifyTransposeNotation",
   };
   const cleanupRule = cleanupRules[name];
   if (cleanupRule) {
@@ -312,6 +364,8 @@ export function parseCLIArguments(args: readonly string[]): ParsedCLIArguments {
         takeValue(),
         ["unnumbered", "numbered"] as const,
       );
+    } else if (flag === "--transpose-expression") {
+      options.cleanup.transposeExpression = validateTransposeExpression(takeValue());
     } else if (!setBooleanOption(options, flag)) {
       throw new Error(`Unknown option: ${flag}.`);
     } else if (inlineValue !== undefined) {
@@ -354,6 +408,9 @@ Conversion options:
   --[no-]normalize-label-prefixes
   --[no-]font-command-braces
   --[no-]collapse-spaces
+  --[no-]unify-set-notation
+  --[no-]unify-transpose
+  --transpose-expression=LATEX
   --[no-]math-spacing
   --[no-]relations
   --[no-]binary-operators

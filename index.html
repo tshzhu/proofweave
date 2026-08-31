@@ -276,6 +276,23 @@
               <input type="checkbox" data-cleanup-rule="collapseSpaces" checked />
               <span>Collapse repeated spaces <small><code>... \tag{1}</code></small></span>
             </label>
+            <label class="option-row">
+              <input type="checkbox" data-cleanup-rule="unifySetNotation" />
+              <span>Unify set notation <small><code>\{x\}</code> → <code>\set{x}</code></small></span>
+            </label>
+            <label class="option-row cleanup-expression-row">
+              <input type="checkbox" data-cleanup-rule="unifyTransposeNotation" />
+              <span>Unify transpose notation <small><code>^{T}</code> → <code>^\transpose</code></small></span>
+              <input
+                id="transpose-expression"
+                class="cleanup-expression"
+                name="transposeExpression"
+                type="text"
+                value="\mkern-1.0mu\mathsf{T}"
+                aria-label="Transpose command expression"
+                spellcheck="false"
+              />
+            </label>
           </div>
         </details>
 

@@ -14,6 +14,14 @@ export interface MathCleanupOptions {
   normalizeLabelPrefixes: boolean
   fontCommandBraces: boolean
   collapseSpaces: boolean
+  unifySetNotation: boolean
+  unifyTransposeNotation: boolean
+  transposeExpression: string
+}
+
+export interface MathCleanupUsage {
+  setNotation: boolean
+  transposeNotation: boolean
 }
 
 export const DEFAULT_MATH_SPACING_OPTIONS: Readonly<MathSpacingOptions> = {
@@ -30,7 +38,12 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   normalizeLabelPrefixes: true,
   fontCommandBraces: true,
   collapseSpaces: true,
+  unifySetNotation: false,
+  unifyTransposeNotation: false,
+  transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
 }
+
+export const DEFAULT_TRANSPOSE_EXPRESSION = DEFAULT_MATH_CLEANUP_OPTIONS.transposeExpression
 
 type TokenKind =
   | 'alignment'
@@ -294,6 +307,7 @@ const RECURSIVE_GROUP_COMMANDS = new Set([
   '\\sqrt',
   '\\tfrac',
   '\\underset',
+  '\\set',
 ])
 
 function commandAt(value: string, index: number): string {
@@ -362,6 +376,273 @@ function groupEnd(value: string, start: number): number | undefined {
     }
   }
   return undefined
+}
+
+interface SetDelimiter {
+  end: number
+  kind: 'close' | 'open'
+  start: number
+}
+
+const SET_SIZE_COMMANDS = new Set([
+  '\\big',
+  '\\Big',
+  '\\bigg',
+  '\\Bigg',
+  '\\bigl',
+  '\\Bigl',
+  '\\biggl',
+  '\\Biggl',
+  '\\bigr',
+  '\\Bigr',
+  '\\biggr',
+  '\\Biggr',
+  '\\left',
+  '\\right',
+])
+
+function isEscapedAt(value: string, index: number): boolean {
+  let slashes = 0
+  for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor -= 1) slashes += 1
+  return slashes % 2 === 1
+}
+
+function setDelimiterAt(value: string, index: number): SetDelimiter | undefined {
+  if (value[index] !== '\\') return undefined
+  const command = commandAt(value, index)
+  let after = index + command.length
+  if (command !== '\\{' && command !== '\\}' && SET_SIZE_COMMANDS.has(command)) {
+    while (/[ \t]/.test(value[after] ?? '')) after += 1
+    const open = value.startsWith('\\{', after) || value.startsWith('\\lbrace', after)
+    const close = value.startsWith('\\}', after) || value.startsWith('\\rbrace', after)
+    if (!open && !close) return undefined
+    return {
+      end: after + (value.startsWith('\\lbrace', after) || value.startsWith('\\rbrace', after) ? 7 : 2),
+      kind: open ? 'open' : 'close',
+      start: index,
+    }
+  }
+  if (command === '\\{') return { end: index + 2, kind: 'open', start: index }
+  if (command === '\\}') return { end: index + 2, kind: 'close', start: index }
+  if (command === '\\lbrace') return { end: index + 7, kind: 'open', start: index }
+  if (command === '\\rbrace') return { end: index + 7, kind: 'close', start: index }
+  return undefined
+}
+
+function opaqueGroupEnd(value: string, commandEnd: number): number | undefined {
+  let groupStart = commandEnd
+  while (/[ \t]/.test(value[groupStart] ?? '')) groupStart += 1
+  if (value[groupStart] !== '{') return undefined
+  return groupEnd(value, groupStart)
+}
+
+function isSemanticOpaqueCommand(command: string): boolean {
+  const base = commandBase(command)
+  return base === '\\begin'
+    || base === '\\cite'
+    || base === '\\cref'
+    || base === '\\eqref'
+    || base === '\\label'
+    || base === '\\mbox'
+    || base === '\\operatorname'
+    || base === '\\ref'
+    || base === '\\tag'
+    || base.startsWith('\\text')
+}
+
+function findSetClose(value: string, start: number): SetDelimiter | undefined {
+  let depth = 1
+  for (let index = start; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) {
+      const newline = value.indexOf('\n', index)
+      if (newline < 0) break
+      index = newline + 1
+      continue
+    }
+    if (value[index] !== '\\') {
+      index += 1
+      continue
+    }
+
+    const command = commandAt(value, index)
+    const commandEnd = index + command.length
+    if (isSemanticOpaqueCommand(command)) {
+      const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+      if (opaqueEnd !== undefined) {
+        index = opaqueEnd
+        continue
+      }
+    }
+
+    const delimiter = setDelimiterAt(value, index)
+    if (!delimiter) {
+      index = commandEnd
+      continue
+    }
+    if (delimiter.kind === 'open') {
+      depth += 1
+      index = delimiter.end
+      continue
+    }
+    depth -= 1
+    if (depth === 0) return delimiter
+    index = delimiter.end
+  }
+  return undefined
+}
+
+function normalizeSetNotation(value: string, usage?: MathCleanupUsage): string {
+  let result = ''
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) {
+      const newline = value.indexOf('\n', index)
+      if (newline < 0) {
+        result += value.slice(index)
+        break
+      }
+      result += value.slice(index, newline + 1)
+      index = newline + 1
+      continue
+    }
+    if (value[index] !== '\\') {
+      if (value[index] === '{') {
+        const end = groupEnd(value, index)
+        if (end !== undefined) {
+          result += `{${normalizeSetNotation(value.slice(index + 1, end - 1), usage)}}`
+          index = end
+          continue
+        }
+      }
+      result += value[index]
+      index += 1
+      continue
+    }
+
+    const command = commandAt(value, index)
+    const commandEnd = index + command.length
+    if (isSemanticOpaqueCommand(command)) {
+      const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+      if (opaqueEnd !== undefined) {
+        result += value.slice(index, opaqueEnd)
+        index = opaqueEnd
+        continue
+      }
+    }
+
+    const delimiter = setDelimiterAt(value, index)
+    if (delimiter?.kind === 'open') {
+      const close = findSetClose(value, delimiter.end)
+      if (close) {
+        const content = value.slice(delimiter.end, close.start).replace(/^[ \t\n]+|[ \t\n]+$/g, '')
+        result += `\\set{${normalizeSetNotation(content, usage)}}`
+        usage && (usage.setNotation = true)
+        index = close.end
+        continue
+      }
+    }
+
+    result += value.slice(index, commandEnd)
+    index = commandEnd
+  }
+  return result
+}
+
+const TRANSPOSE_FONT_COMMANDS = new Set([
+  '\\text', '\\textbf', '\\textit', '\\textmd', '\\textnormal', '\\textrm',
+  '\\textsc', '\\textsf', '\\textsl', '\\texttt', '\\textup',
+  '\\bm', '\\boldsymbol', '\\mathbb', '\\mathcal', '\\mathfrak', '\\mathit',
+  '\\mathnormal', '\\mathbf', '\\mathscr', '\\mathsf', '\\mathtt', '\\mathrm',
+])
+
+function isTransposeFontCommand(command: string): boolean {
+  const base = commandBase(command)
+  return TRANSPOSE_FONT_COMMANDS.has(base) || base.startsWith('\\text') || base.startsWith('\\math')
+}
+
+function isTransposeAtom(value: string): boolean {
+  const trimmed = value.trim()
+  if (trimmed === 'T' || trimmed === '\\top' || trimmed === '\\intercal' || trimmed === '\\transpose') return true
+  if (trimmed[0] !== '\\') return false
+  const command = commandAt(trimmed, 0)
+  if (!isTransposeFontCommand(command)) return false
+  let groupStart = command.length
+  while (/[ \t]/.test(trimmed[groupStart] ?? '')) groupStart += 1
+  const end = groupEnd(trimmed, groupStart)
+  if (end !== undefined && end === trimmed.length) {
+    return trimmed.slice(groupStart + 1, end - 1).trim() === 'T'
+  }
+  return trimmed.slice(groupStart).trim() === 'T'
+}
+
+function transposeOperandEnd(value: string, start: number): number | undefined {
+  if (value[start] === '{') {
+    const end = groupEnd(value, start)
+    return end !== undefined && isTransposeAtom(value.slice(start + 1, end - 1)) ? end : undefined
+  }
+  if (value[start] === 'T') return start + 1
+  if (value[start] !== '\\') return undefined
+  const command = commandAt(value, start)
+  if (command === '\\top' || command === '\\intercal' || command === '\\transpose') return start + command.length
+  if (!isTransposeFontCommand(command)) return undefined
+  const groupStart = start + command.length
+  let cursor = groupStart
+  while (/[ \t]/.test(value[cursor] ?? '')) cursor += 1
+  const end = groupEnd(value, cursor)
+  if (end !== undefined && isTransposeAtom(value.slice(start, end))) return end
+  return value[cursor] === 'T' ? cursor + 1 : undefined
+}
+
+function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): string {
+  let result = ''
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) {
+      const newline = value.indexOf('\n', index)
+      if (newline < 0) {
+        result += value.slice(index)
+        break
+      }
+      result += value.slice(index, newline + 1)
+      index = newline + 1
+      continue
+    }
+    if (value[index] === '\\') {
+      const command = commandAt(value, index)
+      const commandEnd = index + command.length
+      if (isSemanticOpaqueCommand(command)) {
+        const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+        if (opaqueEnd !== undefined) {
+          result += value.slice(index, opaqueEnd)
+          index = opaqueEnd
+          continue
+        }
+      }
+      result += command
+      index = commandEnd
+      continue
+    }
+    if (value[index] === '^') {
+      let operandStart = index + 1
+      while (/[ \t]/.test(value[operandStart] ?? '')) operandStart += 1
+      const operandEnd = transposeOperandEnd(value, operandStart)
+      if (operandEnd !== undefined && value.slice(operandStart, operandEnd).trim() !== '\\transpose') {
+        result += '^\\transpose'
+        usage && (usage.transposeNotation = true)
+        index = operandEnd
+        continue
+      }
+    }
+    if (value[index] === '{') {
+      const end = groupEnd(value, index)
+      if (end !== undefined) {
+        result += `{${normalizeTransposeNotation(value.slice(index + 1, end - 1), usage)}}`
+        index = end
+        continue
+      }
+    }
+    result += value[index]
+    index += 1
+  }
+  return result
 }
 
 function singleFontAtomEnd(value: string, start: number): number | undefined {
@@ -972,7 +1253,7 @@ function formatMathCode(
   collapseSpaces: boolean,
   scriptNested = false,
 ): string {
-  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_]/.test(value)) return value
+  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_^]/.test(value)) return value
   const match = /^([ \t]*)(.*?)([ \t]*)$/.exec(value)
   const leading = match?.[1] ?? ''
   const core = match?.[2] ?? value
@@ -1025,11 +1306,14 @@ export function formatMathSpacing(
   value: string,
   options: MathSpacingOptions = DEFAULT_MATH_SPACING_OPTIONS,
   cleanup: MathCleanupOptions = DEFAULT_MATH_CLEANUP_OPTIONS,
+  usage?: MathCleanupUsage,
 ): string {
   if (value.length === 0) return value
-  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_]/.test(value)) return value
+  if (!/[\\ \t<>=+\-*\/:;,|()[\]{}_^]/.test(value)) return value
   const referenced = normalizeMathReferences(value, cleanup.normalizeLabelPrefixes)
-  const normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
+  let normalized = cleanup.fontCommandBraces ? braceFontCommandArguments(referenced) : referenced
+  if (cleanup.unifySetNotation) normalized = normalizeSetNotation(normalized, usage)
+  if (cleanup.unifyTransposeNotation) normalized = normalizeTransposeNotation(normalized, usage)
   if (!options.enabled) {
     return cleanup.collapseSpaces
       ? normalized.split('\n').map(collapseMathSpacesOnly).join('\n')

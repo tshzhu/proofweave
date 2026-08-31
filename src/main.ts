@@ -15,7 +15,9 @@ import {
   optionsToCLIArgs,
   optionsFromUrlSearch,
   optionsToUrlSearch,
+  shellQuoteCLIArgument,
   shareUrlForOptions,
+  validateTransposeExpression,
   type ConverterOptions,
 } from './options.ts'
 import {
@@ -61,6 +63,7 @@ const cliCommandOutput = requireElement<HTMLElement>('#cli-command')
 const urlCommandOutput = requireElement<HTMLTextAreaElement>('#url-command')
 const cliCopy = requireElement<HTMLButtonElement>('#cli-copy')
 const urlCopy = requireElement<HTMLButtonElement>('#url-copy')
+const transposeExpressionInput = requireElement<HTMLInputElement>('#transpose-expression')
 
 let view: EditorView = 'markdown'
 let source = EXAMPLE_MARKDOWN
@@ -224,6 +227,12 @@ function renderCLICommand(): void {
     cliCommandOutput.replaceChildren()
     cliCommandOutput.append('proofweave ')
     for (const argument of optionsToCLIArgs(options)) {
+      const renderedArgument = shellQuoteCLIArgument(argument)
+      if (renderedArgument !== argument) {
+        cliCommandOutput.append(renderedArgument)
+        cliCommandOutput.append(' ')
+        continue
+      }
       const separator = argument.indexOf('=')
       const optionName = document.createElement('span')
       optionName.className = 'cli-option-name'
@@ -345,8 +354,9 @@ function syncOptionsForm(): void {
   })
   optionsForm.querySelectorAll<HTMLInputElement>('[data-cleanup-rule]').forEach((input) => {
     const rule = input.dataset.cleanupRule
-    if (isCleanupRule(rule)) input.checked = options.cleanup[rule]
+    if (isCleanupRule(rule)) input.checked = options.cleanup[rule] === true
   })
+  transposeExpressionInput.value = options.cleanup.transposeExpression
   updateMathSpacingControls()
 }
 
@@ -570,6 +580,21 @@ optionsForm.addEventListener('change', (event) => {
         ...options,
         mathSpacing: { ...options.mathSpacing, [rule]: target.checked },
       })
+    }
+    return
+  }
+
+  if (target.type === 'text' && target.name === 'transposeExpression') {
+    try {
+      const transposeExpression = validateTransposeExpression(target.value)
+      clearFileMessage()
+      applyConversionOptions({
+        ...options,
+        cleanup: { ...options.cleanup, transposeExpression },
+      })
+    } catch (error) {
+      syncOptionsForm()
+      showFileMessage(error instanceof Error ? error.message : String(error), 'error')
     }
     return
   }
