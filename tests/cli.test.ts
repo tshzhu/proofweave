@@ -180,6 +180,18 @@ test('normalizes inequality variants through configurable CLI commands', () => {
   assert.match(result.stdout, /g \\le h/)
 })
 
+test('normalizes not-equal and empty-set variants through configurable CLI commands', () => {
+  const markdown = String.raw`Inline \(a\ne b, c\not=d, A=\emptyset, B=\varnothing\).`
+  const options = cloneConverterOptions()
+  options.cleanup.notEqualCommand = String.raw`\ne`
+  options.cleanup.emptySetCommand = String.raw`\emptyset`
+  const result = runCLI([String.raw`--ne-command=\ne`, String.raw`--empty-set-command=\emptyset`], markdown)
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, convertMarkdown(markdown, options).latex)
+  assert.match(result.stdout, /a \\ne b/)
+  assert.match(result.stdout, /A = \\emptyset/)
+})
+
 test('keeps cleanup flags effective when math spacing is disabled', () => {
   const markdown = String.raw`Inline \(\boxed{\mathcal X                    \ref{prop:claim}}\).`
   const options = cloneConverterOptions()

@@ -67,6 +67,8 @@ const urlCopy = requireElement<HTMLButtonElement>('#url-copy')
 const transposeExpressionInput = requireElement<HTMLInputElement>('#transpose-expression')
 const greaterEqualCommandInput = requireElement<HTMLInputElement>('#ge-command')
 const lessEqualCommandInput = requireElement<HTMLInputElement>('#le-command')
+const notEqualCommandInput = requireElement<HTMLInputElement>('#ne-command')
+const emptySetCommandInput = requireElement<HTMLInputElement>('#empty-set-command')
 
 let view: EditorView = 'markdown'
 let source = EXAMPLE_MARKDOWN
@@ -362,6 +364,8 @@ function syncOptionsForm(): void {
   transposeExpressionInput.value = options.cleanup.transposeExpression
   greaterEqualCommandInput.value = options.cleanup.greaterEqualCommand
   lessEqualCommandInput.value = options.cleanup.lessEqualCommand
+  notEqualCommandInput.value = options.cleanup.notEqualCommand
+  emptySetCommandInput.value = options.cleanup.emptySetCommand
   updateMathSpacingControls()
 }
 
@@ -607,7 +611,7 @@ optionsForm.addEventListener('change', (event) => {
     return
   }
 
-  if (target.type === 'text' && (target.name === 'greaterEqualCommand' || target.name === 'lessEqualCommand')) {
+  if (target.type === 'text' && ['greaterEqualCommand', 'lessEqualCommand', 'notEqualCommand', 'emptySetCommand'].includes(target.name)) {
     try {
       const command = validateInequalityCommand(target.value, target.name)
       clearFileMessage()

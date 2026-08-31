@@ -17,6 +17,10 @@ export interface MathCleanupOptions {
   normalizeInequalityCommands: boolean
   greaterEqualCommand: string
   lessEqualCommand: string
+  normalizeNotEqualCommand: boolean
+  notEqualCommand: string
+  normalizeEmptySetCommand: boolean
+  emptySetCommand: string
   unifySetNotation: boolean
   unifyTransposeNotation: boolean
   transposeExpression: string
@@ -44,6 +48,10 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   normalizeInequalityCommands: true,
   greaterEqualCommand: '\\ge',
   lessEqualCommand: '\\leq',
+  normalizeNotEqualCommand: true,
+  notEqualCommand: '\\neq',
+  normalizeEmptySetCommand: true,
+  emptySetCommand: '\\varnothing',
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -1353,6 +1361,49 @@ function normalizeInequalityCommands(
   return result
 }
 
+function normalizeSymbolCommands(
+  value: string,
+  cleanup: MathCleanupOptions,
+): string {
+  if (!value.includes('\\')) return value
+  let result = ''
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) return result + value.slice(index)
+    if (value[index] !== '\\') {
+      result += value[index]
+      index += 1
+      continue
+    }
+    const command = commandAt(value, index)
+    const commandEnd = index + command.length
+    if (isSemanticOpaqueCommand(command)) {
+      const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+      if (opaqueEnd !== undefined) {
+        result += value.slice(index, opaqueEnd)
+        index = opaqueEnd
+        continue
+      }
+    }
+    let replacement = command
+    let end = commandEnd
+    if (cleanup.normalizeNotEqualCommand && (command === '\\ne' || command === '\\neq')) {
+      replacement = cleanup.notEqualCommand
+    } else if (cleanup.normalizeNotEqualCommand && command === '\\not') {
+      while (/[ \t]/.test(value[end] ?? '')) end += 1
+      if (value[end] === '=') {
+        replacement = cleanup.notEqualCommand
+        end += 1
+      }
+    } else if (cleanup.normalizeEmptySetCommand && (command === '\\emptyset' || command === '\\varnothing')) {
+      replacement = cleanup.emptySetCommand
+    }
+    result += replacement
+    if (replacement !== command && /[A-Za-z@]/.test(value[end] ?? '')) result += ' '
+    index = end
+  }
+  return result
+}
+
 function formatMathCode(
   value: string,
   options: MathSpacingOptions,
@@ -1429,7 +1480,8 @@ export function formatMathSpacing(
   const inequalities = cleanup.normalizeInequalityCommands
     ? normalizeInequalityCommands(referenced, cleanup.greaterEqualCommand, cleanup.lessEqualCommand)
     : referenced
-  const braced = cleanup.fontCommandBraces ? braceFontCommandArguments(inequalities) : inequalities
+  const symbols = normalizeSymbolCommands(inequalities, cleanup)
+  const braced = cleanup.fontCommandBraces ? braceFontCommandArguments(symbols) : symbols
   const normalized = normalizeSemanticNotation(braced, cleanup, usage)
   if (!options.enabled) {
     return cleanup.collapseSpaces

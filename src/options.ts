@@ -16,6 +16,10 @@ export interface CleanupOptions {
   normalizeInequalityCommands: boolean;
   greaterEqualCommand: string;
   lessEqualCommand: string;
+  normalizeNotEqualCommand: boolean;
+  notEqualCommand: string;
+  normalizeEmptySetCommand: boolean;
+  emptySetCommand: string;
   unifySetNotation: boolean;
   unifyTransposeNotation: boolean;
   transposeExpression: string;
@@ -41,7 +45,7 @@ export const MATH_SPACING_RULES = [
 ] as const satisfies readonly Exclude<keyof MathSpacingOptions, "enabled">[];
 
 export type MathSpacingRule = (typeof MATH_SPACING_RULES)[number];
-export type CleanupBooleanRule = Exclude<keyof CleanupOptions, "transposeExpression" | "greaterEqualCommand" | "lessEqualCommand">;
+export type CleanupBooleanRule = Exclude<keyof CleanupOptions, "transposeExpression" | "greaterEqualCommand" | "lessEqualCommand" | "notEqualCommand" | "emptySetCommand">;
 
 export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   removeBoxed: true,
@@ -51,6 +55,10 @@ export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   normalizeInequalityCommands: true,
   greaterEqualCommand: "\\ge",
   lessEqualCommand: "\\leq",
+  normalizeNotEqualCommand: true,
+  notEqualCommand: "\\neq",
+  normalizeEmptySetCommand: true,
+  emptySetCommand: "\\varnothing",
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION,
@@ -126,6 +134,14 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   }
   if (options.cleanup.lessEqualCommand !== DEFAULT_CLEANUP_OPTIONS.lessEqualCommand) {
     args.push(`--le-command=${options.cleanup.lessEqualCommand}`);
+  }
+  if (!options.cleanup.normalizeNotEqualCommand) args.push("--no-normalize-not-equal-command");
+  if (options.cleanup.notEqualCommand !== DEFAULT_CLEANUP_OPTIONS.notEqualCommand) {
+    args.push(`--ne-command=${options.cleanup.notEqualCommand}`);
+  }
+  if (!options.cleanup.normalizeEmptySetCommand) args.push("--no-normalize-empty-set-command");
+  if (options.cleanup.emptySetCommand !== DEFAULT_CLEANUP_OPTIONS.emptySetCommand) {
+    args.push(`--empty-set-command=${options.cleanup.emptySetCommand}`);
   }
   if (!options.cleanup.unifySetNotation) args.push("--no-unify-set-notation");
   if (!options.cleanup.unifyTransposeNotation) args.push("--no-unify-transpose");
@@ -294,6 +310,8 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     "font-command-braces": "fontCommandBraces",
     "collapse-spaces": "collapseSpaces",
     "normalize-inequality-commands": "normalizeInequalityCommands",
+    "normalize-not-equal-command": "normalizeNotEqualCommand",
+    "normalize-empty-set-command": "normalizeEmptySetCommand",
     "unify-set-notation": "unifySetNotation",
     "unify-transpose": "unifyTransposeNotation",
     "unify-transpose-notation": "unifyTransposeNotation",
@@ -392,6 +410,10 @@ export function parseCLIArguments(args: readonly string[]): ParsedCLIArguments {
       options.cleanup.greaterEqualCommand = validateInequalityCommand(takeValue(), flag);
     } else if (flag === "--le-command") {
       options.cleanup.lessEqualCommand = validateInequalityCommand(takeValue(), flag);
+    } else if (flag === "--ne-command") {
+      options.cleanup.notEqualCommand = validateInequalityCommand(takeValue(), flag);
+    } else if (flag === "--empty-set-command") {
+      options.cleanup.emptySetCommand = validateInequalityCommand(takeValue(), flag);
     } else if (!setBooleanOption(options, flag)) {
       throw new Error(`Unknown option: ${flag}.`);
     } else if (inlineValue !== undefined) {
@@ -437,6 +459,10 @@ Conversion options:
   --[no-]normalize-inequality-commands
   --ge-command=LATEX
   --le-command=LATEX
+  --[no-]normalize-not-equal-command
+  --ne-command=LATEX
+  --[no-]normalize-empty-set-command
+  --empty-set-command=LATEX
   --[no-]unify-set-notation
   --[no-]unify-transpose
   --transpose-expression=LATEX

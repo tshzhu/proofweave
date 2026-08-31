@@ -218,6 +218,10 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]normalize-inequality-commands` | Normalize `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, plus `<=`, `< =`, `\le`, `\leq`, `\leqq`, and `\leqslant` (enabled by default). |
 | `--ge-command=LATEX` | Target greater-or-equal control word; default is `\ge`. |
 | `--le-command=LATEX` | Target less-or-equal control word; default is `\leq`. |
+| `--[no-]normalize-not-equal-command` | Normalize `\ne`, `\neq`, and `\not=` (enabled by default). |
+| `--ne-command=LATEX` | Target not-equal control word; default is `\neq`. |
+| `--[no-]normalize-empty-set-command` | Normalize `\emptyset` and `\varnothing` (enabled by default). |
+| `--empty-set-command=LATEX` | Target empty-set control word; default is `\varnothing`. |
 | `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (enabled by default). |
 | `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (enabled by default). |
 | `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |
