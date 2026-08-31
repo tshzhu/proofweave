@@ -7,6 +7,8 @@ import {
   DEFAULT_CONVERTER_OPTIONS,
   MATH_SPACING_RULES,
   optionsToCLIArgs,
+  optionsFromUrlSearch,
+  optionsToUrlSearch,
   parseCLIArguments,
 } from '../src/options.ts'
 
@@ -46,10 +48,16 @@ test('keeps independent cleanup flags while the math spacing master is disabled'
     '--no-font-command-braces',
     '--no-collapse-spaces',
     '--no-math-spacing',
+    '--no-relations',
+    '--no-binary-operators',
+    '--no-punctuation',
+    '--no-compact-parentheses',
+    '--no-paired-bars',
+    '--no-named-functions',
   ])
   assert.equal(
     cliCommand(options, 'proof.md'),
-    'proofweave --no-normalize-label-prefixes --no-font-command-braces --no-collapse-spaces --no-math-spacing proof.md',
+    'proofweave --no-normalize-label-prefixes --no-font-command-braces --no-collapse-spaces --no-math-spacing --no-relations --no-binary-operators --no-punctuation --no-compact-parentheses --no-paired-bars --no-named-functions proof.md',
   )
 })
 
@@ -95,6 +103,36 @@ test('serializes and parses all independent cleanup options', () => {
     assert.ok(optionsToCLIArgs(configured).includes(`--no-${flag}`))
     assert.equal(parseCLIArguments([`--no-${flag}`]).options.cleanup[key], false)
     assert.equal(parseCLIArguments([`--${flag}`]).options.cleanup[key], true)
+  }
+})
+
+test('round-trips conversion options through the versioned URL payload', () => {
+  const options = cloneConverterOptions()
+  options.indent = 4
+  options.inlineMath = 'parentheses'
+  options.cleanup.removeBoxed = false
+  options.mathSpacing.enabled = false
+  options.mathSpacing.relations = false
+  options.mathSpacing.namedFunctions = false
+
+  const search = optionsToUrlSearch(options)
+  assert.match(search, /^opt=%7B%22v%22%3A1%2C%22args%22%3A/)
+  const restored = optionsFromUrlSearch(search)
+  assert.equal(restored.error, undefined)
+  assert.deepEqual(restored.options, options)
+  assert.equal(optionsToUrlSearch(DEFAULT_CONVERTER_OPTIONS), '')
+})
+
+test('rejects malformed, unknown-version, and non-conversion URL options', () => {
+  for (const search of [
+    'opt=%7Bbroken',
+    `opt=${encodeURIComponent(JSON.stringify({ v: 99, args: [] }))}`,
+    `opt=${encodeURIComponent(JSON.stringify({ v: 1, args: ['--output', 'out.tex'] }))}`,
+    `opt=${encodeURIComponent(JSON.stringify({ v: 1, args: ['proof.md'] }))}`,
+  ]) {
+    const restored = optionsFromUrlSearch(search)
+    assert.ok(restored.error)
+    assert.deepEqual(restored.options, DEFAULT_CONVERTER_OPTIONS)
   }
 })
 

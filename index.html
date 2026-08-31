@@ -291,11 +291,25 @@
           </div>
         </details>
 
+        <details id="url-panel">
+          <summary>URL</summary>
+          <div class="share-panel-content">
+            <p>Share this URL to reuse the current conversion options:</p>
+            <div class="share-field">
+              <textarea id="url-command" rows="2" readonly aria-label="Shareable ProofWeave URL"></textarea>
+              <button id="url-copy" class="share-copy" type="button" aria-label="Copy shareable URL" title="Copy shareable URL">Copy</button>
+            </div>
+          </div>
+        </details>
+
         <details id="cli-panel">
           <summary>CLI</summary>
           <div class="cli-panel-content">
             <p>To run this configuration on the command line:</p>
-            <code id="cli-command">proofweave YOUR_FILE.md</code>
+            <div class="share-field">
+              <code id="cli-command">proofweave YOUR_FILE.md</code>
+              <button id="cli-copy" class="share-copy" type="button" aria-label="Copy CLI command" title="Copy CLI command">Copy</button>
+            </div>
           </div>
         </details>
       </form>

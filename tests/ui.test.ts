@@ -165,13 +165,15 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
       'Math spacing',
       'Cleanup',
       'Diagnostics',
+      'URL',
       'CLI',
     ],
   )
   assert.match(html, /<details id="cli-panel">[\s\S]*<summary>CLI<\/summary>/)
   assert.match(html, /To run this configuration on the command line:/)
   assert.match(html, /id="cli-command"[\s\S]*proofweave YOUR_FILE\.md/)
-  assert.ok(html.indexOf('<summary>Diagnostics</summary>') < html.indexOf('<summary>CLI</summary>'))
+  assert.ok(html.indexOf('<summary>Diagnostics</summary>') < html.indexOf('<summary>URL</summary>'))
+  assert.ok(html.indexOf('<summary>URL</summary>') < html.indexOf('<summary>CLI</summary>'))
   assert.ok(html.indexOf('<summary>CLI</summary>') < html.indexOf('</form>'))
   assert.match(main, /function renderCLICommand\(\)/)
   assert.match(main, /optionsToCLIArgs\(options\)/)
@@ -179,6 +181,29 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
   assert.match(main, /cliCommandOutput\.dataset\.command = command/)
   assert.match(optionsSource, /export function optionsToCLIArgs/)
   assert.match(optionsSource, /export function parseCLIArguments/)
+})
+
+test('provides copy controls for the shareable URL and CLI command', () => {
+  assert.match(html, /<details id="url-panel">[\s\S]*id="url-command"[\s\S]*id="url-copy"[\s\S]*Copy shareable URL/)
+  assert.match(html, /<details id="cli-panel">[\s\S]*id="cli-command"[\s\S]*id="cli-copy"[\s\S]*Copy CLI command/)
+  assert.match(css, /\.share-field\s*\{[\s\S]*grid-template-columns/)
+  assert.match(main, /urlCommandOutput\.value = shareUrl/)
+  assert.match(main, /copyShareValue\(cliCommandOutput\.dataset\.command/)
+  assert.match(main, /copyShareValue\(urlCommandOutput\.value/)
+})
+
+test('supports shareable conversion-option URLs without storing document state', () => {
+  assert.match(optionsSource, /OPTIONS_URL_PARAMETER = ['"]opt['"];/)
+  assert.match(optionsSource, /OPTIONS_URL_VERSION = 1/)
+  assert.match(optionsSource, /export function optionsToUrlSearch/)
+  assert.match(optionsSource, /export function optionsFromUrlSearch/)
+  assert.match(main, /optionsFromUrlSearch\(window\.location\.search\)/)
+  assert.match(main, /optionsToUrlSearch\(options\)/)
+  assert.match(main, /history\.replaceState\(null, '', next\)/)
+  assert.match(main, /url\.searchParams\.delete\('opt'\)/)
+  assert.match(main, /restoredOptions\.error/)
+  assert.match(main, /syncOptionsForm\(\)/)
+  assert.doesNotMatch(main, /localStorage\.setItem\([^)]*source|localStorage\.setItem\([^)]*options/)
 })
 
 test('keeps the requested interactions wired to the new interface', () => {
