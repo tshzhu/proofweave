@@ -26,6 +26,7 @@ test('round-trips every effective web option through CLI arguments', () => {
   options.outsideDisplayMath = 'dollars'
   options.sectionNumbering = 'numbered'
   options.cleanup.removeBoxed = false
+  options.cleanup.normalizeMathSymbolNotation = false
   options.cleanup.unifySetNotation = true
   options.cleanup.unifyTransposeNotation = true
   options.cleanup.transposeExpression = String.raw`\mathsf{T}`
@@ -103,6 +104,7 @@ test('serializes and parses all independent cleanup options', () => {
     notEqualCommand: String.raw`\neq`,
     normalizeEmptySetCommand: true,
     emptySetCommand: String.raw`\varnothing`,
+    normalizeMathSymbolNotation: true,
     unifySetNotation: true,
     unifyTransposeNotation: true,
     transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -114,6 +116,7 @@ test('serializes and parses all independent cleanup options', () => {
     ['collapseSpaces', 'collapse-spaces'],
     ['normalizeInequalityCommands', 'normalize-inequality-commands'],
     ['normalizeEmptySetCommand', 'normalize-empty-set-command'],
+    ['normalizeMathSymbolNotation', 'normalize-math-symbols'],
   ] as const) {
     const configured = cloneConverterOptions()
     configured.cleanup[key] = false
@@ -171,6 +174,7 @@ test('round-trips conversion options through the versioned URL payload', () => {
   options.indent = 4
   options.inlineMath = 'parentheses'
   options.cleanup.removeBoxed = false
+  options.cleanup.normalizeMathSymbolNotation = false
   options.cleanup.unifySetNotation = true
   options.cleanup.unifyTransposeNotation = true
   options.cleanup.transposeExpression = String.raw`\mathsf{T}`

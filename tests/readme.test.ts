@@ -30,6 +30,8 @@ test('keeps the README before/after example synchronized with the default render
   assert.match(markedFence('output', 'latex'), /\n\n% This Markdown note is kept as LaTeX comments\.[\s\S]*?% \\\[x\*y\\\]\n\n\\begin\{lemma\}/)
   assert.doesNotMatch(markedFence('output', 'latex'), /\n%\n% This Markdown note|%\n\n\\begin\{lemma\}/)
   assert.doesNotMatch(markedFence('output', 'latex'), /<!--|-->/)
+  assert.match(markedFence('output', 'latex'), /\\newcommand\{\\vx\}\{\\bm\{x\}\}[\s\S]*\\newcommand\{\\mTheta\}\{\\bm\{\\Theta\}\}[\s\S]*\\newcommand\{\\fX\}\{\\mathcal\{X\}\}/)
+  assert.match(readme, /\[Notation for Machine Learning\]\(https:\/\/notation\.baai\.ac\.cn\/en\)/)
 })
 
 test('documents every public CLI flag and alias exposed by CLI help', () => {
@@ -37,7 +39,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
     const optionField = /^\s{2}(.+?)(?:\s{2,}|$)/.exec(line)?.[1]
     return optionField ? [...optionField.matchAll(/(?:^|,\s*)(--?[^,\s]+)/g)].map((match) => match[1]!) : []
   })
-  assert.equal(helpOptions.length, 33)
+  assert.equal(helpOptions.length, 34)
   for (const option of helpOptions) {
     assert.ok(readme.includes(`\`${option}\``), `README does not document ${option}`)
   }

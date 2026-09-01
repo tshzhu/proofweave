@@ -19,6 +19,7 @@ export interface CleanupOptions {
   notEqualCommand: string;
   normalizeEmptySetCommand: boolean;
   emptySetCommand: string;
+  normalizeMathSymbolNotation: boolean;
   unifySetNotation: boolean;
   unifyTransposeNotation: boolean;
   transposeExpression: string;
@@ -57,6 +58,7 @@ export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   notEqualCommand: "\\neq",
   normalizeEmptySetCommand: true,
   emptySetCommand: "\\varnothing",
+  normalizeMathSymbolNotation: true,
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: DEFAULT_TRANSPOSE_EXPRESSION,
@@ -141,6 +143,7 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (options.cleanup.emptySetCommand !== DEFAULT_CLEANUP_OPTIONS.emptySetCommand) {
     args.push(`--empty-set-command=${options.cleanup.emptySetCommand}`);
   }
+  if (!options.cleanup.normalizeMathSymbolNotation) args.push("--no-normalize-math-symbols");
   if (!options.cleanup.unifySetNotation) args.push("--no-unify-set-notation");
   if (!options.cleanup.unifyTransposeNotation) args.push("--no-unify-transpose");
   if (options.cleanup.transposeExpression !== DEFAULT_CLEANUP_OPTIONS.transposeExpression) {
@@ -309,6 +312,7 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     "collapse-spaces": "collapseSpaces",
     "normalize-inequality-commands": "normalizeInequalityCommands",
     "normalize-empty-set-command": "normalizeEmptySetCommand",
+    "normalize-math-symbols": "normalizeMathSymbolNotation",
     "unify-set-notation": "unifySetNotation",
     "unify-transpose": "unifyTransposeNotation",
     "unify-transpose-notation": "unifyTransposeNotation",
@@ -459,6 +463,7 @@ Conversion options:
   --ne-command=LATEX
   --[no-]normalize-empty-set-command
   --empty-set-command=LATEX
+  --[no-]normalize-math-symbols
   --[no-]unify-set-notation
   --[no-]unify-transpose
   --transpose-expression=LATEX

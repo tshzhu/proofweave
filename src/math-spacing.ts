@@ -20,12 +20,18 @@ export interface MathCleanupOptions {
   notEqualCommand: string
   normalizeEmptySetCommand: boolean
   emptySetCommand: string
+  normalizeMathSymbolNotation: boolean
   unifySetNotation: boolean
   unifyTransposeNotation: boolean
   transposeExpression: string
 }
 
 export interface MathCleanupUsage {
+  mathSymbolNotation: {
+    families: Map<string, string>
+    matrices: Map<string, string>
+    vectors: Map<string, string>
+  }
   setNotation: boolean
   transposeNotation: boolean
 }
@@ -50,6 +56,7 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   notEqualCommand: '\\neq',
   normalizeEmptySetCommand: true,
   emptySetCommand: '\\varnothing',
+  normalizeMathSymbolNotation: true,
   unifySetNotation: true,
   unifyTransposeNotation: true,
   transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
@@ -691,14 +698,132 @@ function normalizeTransposeNotation(value: string, usage?: MathCleanupUsage): st
   return result
 }
 
+const BOLD_SYMBOL_COMMANDS = new Set(['\\bm', '\\boldsymbol', '\\mathbf'])
+const LOWERCASE_GREEK_SYMBOLS = new Set([
+  'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'varepsilon', 'zeta', 'eta',
+  'theta', 'vartheta', 'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'pi',
+  'varpi', 'rho', 'varrho', 'sigma', 'varsigma', 'tau', 'upsilon', 'phi',
+  'varphi', 'chi', 'psi', 'omega',
+])
+const UPPERCASE_GREEK_SYMBOLS = new Set([
+  'Gamma', 'Delta', 'Theta', 'Lambda', 'Xi', 'Pi', 'Sigma', 'Upsilon', 'Phi',
+  'Psi', 'Omega',
+])
+
+interface MathSymbolAtom {
+  category: 'families' | 'matrices' | 'vectors'
+  macro: string
+  source: string
+}
+
+function mathSymbolAtom(value: string, mathcal: boolean): MathSymbolAtom | undefined {
+  const trimmed = value.trim()
+  if (/^[A-Za-z]$/.test(trimmed)) {
+    if (mathcal && !/^[A-Z]$/.test(trimmed)) return undefined
+    const category = mathcal ? 'families' : /^[A-Z]$/.test(trimmed) ? 'matrices' : 'vectors'
+    const prefix = category === 'families' ? 'f' : category === 'matrices' ? 'm' : 'v'
+    const sourceCommand = mathcal ? '\\mathcal' : '\\bm'
+    return {
+      category,
+      macro: `\\${prefix}${trimmed}`,
+      source: `${sourceCommand}{${trimmed}}`,
+    }
+  }
+  if (mathcal || trimmed[0] !== '\\') return undefined
+  const command = commandAt(trimmed, 0)
+  if (command.length !== trimmed.length) return undefined
+  const name = command.slice(1)
+  const category = UPPERCASE_GREEK_SYMBOLS.has(name)
+    ? 'matrices'
+    : LOWERCASE_GREEK_SYMBOLS.has(name) ? 'vectors' : undefined
+  if (!category) return undefined
+  return {
+    category,
+    macro: `\\${category === 'matrices' ? 'm' : 'v'}${name}`,
+    source: `\\bm{${command}}`,
+  }
+}
+
+function recordMathSymbolUsage(usage: MathCleanupUsage | undefined, atom: MathSymbolAtom): void {
+  usage?.mathSymbolNotation[atom.category].set(atom.macro, atom.source)
+}
+
+function normalizeMathSymbolNotation(value: string, usage?: MathCleanupUsage): string {
+  if (!value.includes('\\')) return value
+  let result = ''
+  for (let index = 0; index < value.length;) {
+    if (value[index] === '%' && !isEscapedAt(value, index)) {
+      const newline = value.indexOf('\n', index)
+      if (newline < 0) return result + value.slice(index)
+      result += value.slice(index, newline + 1)
+      index = newline + 1
+      continue
+    }
+    if (value[index] !== '\\') {
+      result += value[index]
+      index += 1
+      continue
+    }
+
+    const command = commandAt(value, index)
+    const commandEnd = index + command.length
+    if (isSemanticOpaqueCommand(command)) {
+      const opaqueEnd = opaqueGroupEnd(value, commandEnd)
+      if (opaqueEnd !== undefined) {
+        result += value.slice(index, opaqueEnd)
+        index = opaqueEnd
+        continue
+      }
+    }
+
+    const base = commandBase(command)
+    const mathcal = base === '\\mathcal'
+    if (!mathcal && !BOLD_SYMBOL_COMMANDS.has(base)) {
+      result += command
+      index = commandEnd
+      continue
+    }
+
+    let argumentStart = commandEnd
+    while (/[ \t]/.test(value[argumentStart] ?? '')) argumentStart += 1
+    let argumentEnd: number | undefined
+    let atomSource: string | undefined
+    if (value[argumentStart] === '{') {
+      argumentEnd = groupEnd(value, argumentStart)
+      if (argumentEnd !== undefined) atomSource = value.slice(argumentStart + 1, argumentEnd - 1)
+    } else {
+      argumentEnd = singleFontAtomEnd(value, argumentStart)
+      if (argumentEnd !== undefined) atomSource = value.slice(argumentStart, argumentEnd)
+    }
+    const atom = atomSource === undefined ? undefined : mathSymbolAtom(atomSource, mathcal)
+    if (!atom || argumentEnd === undefined) {
+      if (argumentEnd !== undefined) {
+        result += value.slice(index, argumentEnd)
+        index = argumentEnd
+      } else {
+        result += command
+        index = commandEnd
+      }
+      continue
+    }
+
+    result += atom.macro
+    if (/[A-Za-z@]/.test(value[argumentEnd] ?? '')) result += ' '
+    recordMathSymbolUsage(usage, atom)
+    index = argumentEnd
+  }
+  return result
+}
+
 function normalizeSemanticNotation(
   value: string,
   cleanup: MathCleanupOptions,
   usage?: MathCleanupUsage,
 ): string {
   let normalized = value
-  if (cleanup.unifySetNotation) normalized = normalizeSetNotation(normalized, usage)
   if (cleanup.unifyTransposeNotation) normalized = normalizeTransposeNotation(normalized, usage)
+  if (cleanup.normalizeMathSymbolNotation) normalized = normalizeMathSymbolNotation(normalized, usage)
+  if (cleanup.unifySetNotation) normalized = normalizeSetNotation(normalized, usage)
   return normalized
 }
 

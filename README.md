@@ -28,7 +28,7 @@ This Markdown note is kept as LaTeX comments.
 
 ### statement
 
-For every \(x\in\mathcal X\), define \(S = \{v \in \mathbb R^d : v^{\mathsf{T}} v \le 1\}\). Then
+For every \(\mathbf{x}\in\mathcal X\), define \(S = \{\mathbf{v} \in \mathbb R^d : \mathbf{v}^{\mathsf{T}} \mathbf{v} \le 1\}\). Let \(\bm{\Theta}\) be the model matrix. Then
 \[
   |f(x)| \le C.
 \]
@@ -50,7 +50,7 @@ The construction is deterministic, so the result follows.
 ## A useful checklist
 
 - Keep the statement readable.
-- Preserve \(\mathcal X\) exactly.
+- Use consistent notation for \(\mathcal X\), \(\mathbf{x}\), and \(\bm{\Theta}\).
   - Nested items are supported.
 - Use a display when a formula deserves its own line.
 ```
@@ -60,6 +60,13 @@ After `proofweave proof.md` with the default options:
 
 <!-- proofweave-example-output:start -->
 ```latex
+\newcommand{\vx}{\bm{x}}
+\newcommand{\vv}{\bm{v}}
+
+\newcommand{\mTheta}{\bm{\Theta}}
+
+\newcommand{\fX}{\mathcal{X}}
+
 \newcommand{\set}[1]{\left\{#1\right\}} % set
 \newcommand{\transpose}{{\mkern-1.0mu\mathsf{T}}} % transpose
 
@@ -72,7 +79,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
+	For every $\vx \in \fX$, define $S = \set{\vv \in \mathbb{R}^d : \vv^\transpose \vv \le 1}$. Let $\mTheta$ be the model matrix. Then
 	\begin{equation}
 		  | f(x) | \le C.
 	\end{equation}
@@ -94,7 +101,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 
 \begin{itemize}
 	\item Keep the statement readable.
-	\item Preserve $\mathcal{X}$ exactly.
+	\item Use consistent notation for $\fX$, $\vx$, and $\mTheta$.
 		\begin{itemize}
 			\item Nested items are supported.
 		\end{itemize}
@@ -105,11 +112,11 @@ This example demonstrates headings, theorem environments, lists, and math.
 
 This is LaTeX body content, not a complete document. The leading indentation
 above consists of tabs because `--indent=tab` is the default. The default
-formatter also normalizes math spacing, braces `\mathcal{X}`, uses `equation`
+formatter also normalizes math spacing, converts `\mathcal{X}` to `\fX`, uses `equation`
 inside statements, creates canonical labels, and removes the proof-final
 `\square` because LaTeX's `proof` environment supplies the QED symbol. The
-example also shows the default set/transpose cleanup and its two declarations;
-declarations are emitted only when a matching expression was actually changed.
+example also shows the default vector/matrix/family, set, and transpose cleanup.
+Declarations are emitted only when a matching expression was actually changed.
 
 HTML-style Markdown comments `<!-- ... -->` are converted to safe, line-by-line
 LaTeX comments. A multi-line comment becomes one `%` line per content line; the
@@ -221,6 +228,7 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--ne-command=LATEX` | Target not-equal control word; default is `\neq`. |
 | `--[no-]normalize-empty-set-command` | Normalize `\emptyset` and `\varnothing` (enabled by default). |
 | `--empty-set-command=LATEX` | Target empty-set control word; default is `\varnothing`. |
+| `--[no-]normalize-math-symbols` | Convert a single bold lowercase Latin/Greek math symbol to `\v*`, a single bold uppercase Latin/Greek symbol to `\m*`, and a single `\mathcal` uppercase Latin symbol to `\f*` (enabled by default). |
 | `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (enabled by default). |
 | `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (enabled by default). |
 | `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |
@@ -238,12 +246,18 @@ an `equation` environment and receives an owner-aware label such as
 `\eqref{eqn:main-N}`. Math-styled theorem references such as
 `\mathrm{lem:example}` become `\ref{lem:example}`.
 
-When semantic notation cleanup actually changes a matching expression, the
-generated body starts with the corresponding `\newcommand` declaration:
+When notation cleanup actually changes a matching expression, the generated body
+starts with the corresponding `\newcommand` declaration. For example,
+`\mathbf{x}`, `\bm{\Theta}`, and `\mathcal{F}` become `\vx`, `\mTheta`, and
+`\fF`, with definitions based on `\bm` and `\mathcal`. Multi-symbol arguments
+such as `\mathbf{abcd}`, ordinary text, and content inside `\text{...}` are left
+unchanged. These `\v*`, `\m*`, and `\f*` conventions follow BAAI's
+[Notation for Machine Learning](https://notation.baai.ac.cn/en).
+
 `\set` uses `\left\{#1\right\}`, while `\transpose` uses the configured
 expression wrapped in a definition. Enabled cleanup with no matching conversion
-does not emit an unused declaration. Declarations appear before any other body
-content, including comments.
+does not emit an unused declaration. Declarations are deduplicated and appear
+before any other body content, including comments.
 
 ### Command examples
 
@@ -306,6 +320,12 @@ proofweave \
   --no-unify-set-notation \
   --transpose-expression='\mkern-1.0mu\mathsf{T}' \
   proof.md > proof.tex
+```
+
+Disable vector, matrix, and family macro normalization:
+
+```sh
+proofweave --no-normalize-math-symbols proof.md > proof.tex
 ```
 
 When semantic cleanup modifies the input, the generated LaTeX starts with the

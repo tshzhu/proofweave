@@ -50,6 +50,7 @@ test('applies a complete non-default CLI configuration identically to the web co
     '--no-paired-bars',
     '--no-named-functions',
     '--no-font-command-braces',
+    '--no-normalize-math-symbols',
     '--no-collapse-spaces',
   ]
   const options = cloneConverterOptions()
@@ -67,6 +68,7 @@ test('applies a complete non-default CLI configuration identically to the web co
   options.mathSpacing.pairedBars = false
   options.mathSpacing.namedFunctions = false
   options.cleanup.fontCommandBraces = false
+  options.cleanup.normalizeMathSymbolNotation = false
   options.cleanup.collapseSpaces = false
 
   const result = runCLI(args, markdown)
@@ -150,6 +152,23 @@ test('applies set and transpose notation cleanup through the CLI', () => {
   assert.match(result.stdout, /\\newcommand\{\\transpose\}\{\{\\mathsf\{T\}\}\}/)
 })
 
+test('toggles vector, matrix, and family macro cleanup through the CLI', () => {
+  const markdown = String.raw`Inline \(\mathbf{x} + \bm{\Theta} + \mathcal{F}\).`
+  const enabled = runCLI([], markdown)
+  assert.equal(enabled.status, 0)
+  assert.match(enabled.stdout, /\\newcommand\{\\vx\}\{\\bm\{x\}\}/)
+  assert.match(enabled.stdout, /\\newcommand\{\\mTheta\}\{\\bm\{\\Theta\}\}/)
+  assert.match(enabled.stdout, /\\newcommand\{\\fF\}\{\\mathcal\{F\}\}/)
+
+  const options = cloneConverterOptions()
+  options.cleanup.normalizeMathSymbolNotation = false
+  const disabled = runCLI(['--no-normalize-math-symbols'], markdown)
+  assert.equal(disabled.status, 0)
+  assert.equal(disabled.stdout, convertMarkdown(markdown, options).latex)
+  assert.doesNotMatch(disabled.stdout, /\\newcommand/)
+  assert.match(disabled.stdout, /\\mathbf\{x\} \+ \\bm\{\\Theta\} \+ \\mathcal\{F\}/)
+})
+
 test('shares label-prefix cleanup across theorem labels and existing references', () => {
   const markdown = String.raw`## proposition prop:claim
 
@@ -199,12 +218,14 @@ test('keeps cleanup flags effective when math spacing is disabled', () => {
   options.cleanup.removeBoxed = false
   options.cleanup.normalizeLabelPrefixes = false
   options.cleanup.fontCommandBraces = false
+  options.cleanup.normalizeMathSymbolNotation = false
   options.cleanup.collapseSpaces = false
   const args = [
     '--no-math-spacing',
     '--no-remove-boxed',
     '--no-normalize-label-prefixes',
     '--no-font-command-braces',
+    '--no-normalize-math-symbols',
     '--no-collapse-spaces',
   ]
   const result = runCLI(args, markdown)

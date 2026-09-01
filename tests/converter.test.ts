@@ -13,13 +13,20 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, normalizeMathSymbolNotation: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
 
 test('renders the built-in example with structural blank lines only', () => {
-  assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set
+  assert.equal(convertMarkdown(EXAMPLE_MARKDOWN).latex, String.raw`\newcommand{\vx}{\bm{x}}
+\newcommand{\vv}{\bm{v}}
+
+\newcommand{\mTheta}{\bm{\Theta}}
+
+\newcommand{\fX}{\mathcal{X}}
+
+\newcommand{\set}[1]{\left\{#1\right\}} % set
 \newcommand{\transpose}{{\mkern-1.0mu\mathsf{T}}} % transpose
 
 \section*{Part I -- A small estimate}
@@ -31,7 +38,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
+	For every $\vx \in \fX$, define $S = \set{\vv \in \mathbb{R}^d : \vv^\transpose \vv \le 1}$. Let $\mTheta$ be the model matrix. Then
 	\begin{equation}
 		  | f(x) | \le C.
 	\end{equation}
@@ -53,7 +60,7 @@ This example demonstrates headings, theorem environments, lists, and math.
 
 \begin{itemize}
 	\item Keep the statement readable.
-	\item Preserve $\mathcal{X}$ exactly.
+	\item Use consistent notation for $\fX$, $\vx$, and $\mTheta$.
 		\begin{itemize}
 			\item Nested items are supported.
 		\end{itemize}
@@ -73,8 +80,10 @@ For every \(x\in\mathcal X\), the bound holds.
 The estimate proves the claim. \square`)
 
   assert.equal(result.diagnostics.length, 0)
-  assert.equal(result.latex, String.raw`\begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, the bound holds.
+  assert.equal(result.latex, String.raw`\newcommand{\fX}{\mathcal{X}}
+
+\begin{lemma}\label{lem:uniform-noise}
+	For every $x \in \fX$, the bound holds.
 \end{lemma}
 
 \begin{proof}
@@ -351,7 +360,7 @@ c &= d
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, normalizeMathSymbolNotation: true, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -543,6 +552,38 @@ Inline $\set{x} and A^\transpose$.`)
   assert.equal(declarationOnly.latex, 'Plain text.')
 })
 
+test('declares only math symbol macros that were actually converted', () => {
+  const result = convertMarkdown(String.raw`Plain \mathbf{Q}; math \(\mathbf{x} + \bm{\xi} + \mathbf{M} + \bm{\Theta} + \mathcal{F} + \mathcal{F}\).`)
+  assert.equal(result.latex, String.raw`\newcommand{\vx}{\bm{x}}
+\newcommand{\vxi}{\bm{\xi}}
+
+\newcommand{\mM}{\bm{M}}
+\newcommand{\mTheta}{\bm{\Theta}}
+
+\newcommand{\fF}{\mathcal{F}}
+
+Plain \mathbf{Q}; math $\vx + \vxi + \mM + \mTheta + \fF + \fF$.`)
+  assert.doesNotMatch(result.latex, /\\newcommand\{\\mQ\}/)
+
+  const disabled = convertMarkdown(String.raw`\(\mathbf{x} + \bm{\Theta} + \mathcal{F}\)`, {
+    ...DEFAULT_RENDER_OPTIONS,
+    cleanup: { ...DEFAULT_RENDER_OPTIONS.cleanup, normalizeMathSymbolNotation: false },
+  })
+  assert.equal(disabled.latex, String.raw`$\mathbf{x} + \bm{\Theta} + \mathcal{F}$`)
+  assert.doesNotMatch(disabled.latex, /\\newcommand/)
+})
+
+test('keeps math symbol cleanup independent from the math-spacing master switch', () => {
+  const result = convertMarkdown(String.raw`\(\mathbf{x} + \bm{\Theta} + \mathcal{F}\)`, {
+    ...DEFAULT_RENDER_OPTIONS,
+    mathSpacing: { ...DEFAULT_RENDER_OPTIONS.mathSpacing, enabled: false },
+  })
+  assert.match(result.latex, /\\newcommand\{\\vx\}\{\\bm\{x\}\}/)
+  assert.match(result.latex, /\\newcommand\{\\mTheta\}\{\\bm\{\\Theta\}\}/)
+  assert.match(result.latex, /\\newcommand\{\\fF\}\{\\mathcal\{F\}\}/)
+  assert.match(result.latex, /\$\\vx \+ \\mTheta \+ \\fF\$/)
+})
+
 test('keeps semantic cleanup independent from math-spacing master switch', () => {
   const options = {
     ...DEFAULT_RENDER_OPTIONS,
@@ -633,7 +674,7 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, normalizeMathSymbolNotation: true, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -759,6 +800,7 @@ function assertMathSpacingIsStable(input: string): void {
     ...DEFAULT_MATH_CLEANUP_OPTIONS,
     fontCommandBraces: false,
     collapseSpaces: true,
+    normalizeMathSymbolNotation: false,
     unifySetNotation: false,
     unifyTransposeNotation: false,
     normalizeInequalityCommands: false,

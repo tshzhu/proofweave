@@ -52,6 +52,40 @@ test('escapes untrusted editor text before producing highlight markup', () => {
   assert.equal(decodeHighlighted(html), source)
 })
 
+test('highlights complete Markdown comments as opaque comment text', () => {
+  const source = String.raw`Before <!-- inline \(x+y\) --> after **bold**.
+<!--
+## hidden heading
+- hidden list
+\[x*y\]
+-->
+After.`
+  const html = highlightCode(source, 'markdown')
+  const comments = [...html.matchAll(/<span class="token token-comment">([\s\S]*?)<\/span>/g)]
+  assert.equal(comments.length, 6)
+  assert.ok((comments[0]?.[1] ?? '').includes(String.raw`&lt;!-- inline \(x+y\) --&gt;`))
+  assert.match(comments[2]?.[1] ?? '', /## hidden heading/)
+  assert.ok((comments[4]?.[1] ?? '').includes(String.raw`\[x*y\]`))
+  for (const match of comments) assert.doesNotMatch(match[1] ?? '', /token-(?:heading|math|command|list-marker)/)
+  assert.match(html, /token-strong">bold/)
+  assert.equal(decodeHighlighted(html), source)
+})
+
+test('keeps comment markers in code literal and highlights unclosed comments to EOF', () => {
+  const source = String.raw`Code ` + '`<!-- literal -->`' + String.raw`
+~~~md
+<!-- fenced -->
+~~~
+Text <!-- unclosed
+## still commented`
+  const html = highlightCode(source, 'markdown')
+  assert.match(html, /token-code">&lt;!-- literal --&gt;/)
+  assert.match(html, /token-code">&lt;!-- fenced --&gt;/)
+  assert.match(html, /token-comment">&lt;!-- unclosed/)
+  assert.match(html, /token-comment">## still commented/)
+  assert.equal(decodeHighlighted(html), source)
+})
+
 const blueprintPath = '/scratch1/workspace/proof-from-rethlas/nwr_fill_distance/.rethlas/state/results/nwr_fill_distance/problem/blueprint_verified.md'
 
 test('highlights the full verified blueprint without changing its text', {
