@@ -139,7 +139,7 @@ Install the released CLI globally:
 
 ```sh
 npm install --global proofweave
-proofweave --version
+proofweave --version  # 1.0.0
 ```
 
 Or install it locally in a project:
