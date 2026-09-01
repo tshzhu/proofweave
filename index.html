@@ -13,7 +13,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png" />
     <link rel="icon" href="./icons/favicon.ico" sizes="any" />
     <link rel="manifest" href="./icons/site.webmanifest" />
-    <title>ProofWeave — Convert Markdown proofs into clean LaTeX</title>
+    <title>ProofWeave - Turn Markdown proofs into clean LaTeX</title>
     <script>
       try {
         const theme = localStorage.getItem('proofweave-theme') === 'dark' ? 'dark' : 'light'
@@ -262,23 +262,23 @@
           <div class="option-list">
             <label class="option-row">
               <input type="checkbox" name="removeBoxed" data-cleanup-rule="removeBoxed" checked />
-              <span>Remove <code>\boxed{}</code> wrappers</span>
+              <span>Remove <code>\boxed{}</code> wrappers <small>Keep the contents and drop only the box.</small></span>
             </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="normalizeLabelPrefixes" checked />
-              <span>Use 3-letter label prefixes</span>
+              <span>Use 3-letter label prefixes <small>Map theorem labels and references to <code>thm</code>, <code>lem</code>, and other canonical prefixes.</small></span>
             </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="fontCommandBraces" checked />
-              <span>Brace math font arguments</span>
+              <span>Brace math font arguments <small>Turn <code>\mathcal X</code> into <code>\mathcal{X}</code> for unambiguous grouping.</small></span>
             </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="collapseSpaces" checked />
-              <span>Collapse repeated math spaces</span>
+              <span>Collapse repeated math spaces <small>Replace runs of literal spaces while preserving explicit TeX spacing commands.</small></span>
             </label>
             <label class="option-row cleanup-expression-row">
               <input type="checkbox" data-cleanup-rule="normalizeInequalityCommands" checked />
-              <span>Use consistent comparison commands</span>
+              <span>Use consistent comparison commands <small>Normalize equivalent greater-than, less-than, and not-equal forms.</small></span>
               <span class="cleanup-expression-pair">
                 <span>Greater or equal</span>
                 <input id="ge-command" class="cleanup-expression" name="greaterEqualCommand" type="text" value="\ge" aria-label="Greater-or-equal command" spellcheck="false" />
@@ -290,20 +290,20 @@
             </label>
             <label class="option-row cleanup-expression-row">
               <input type="checkbox" data-cleanup-rule="normalizeEmptySetCommand" checked />
-              <span>Use one empty-set command</span>
+              <span>Use one empty-set command <small>Choose a single command for <code>\emptyset</code> and <code>\varnothing</code>.</small></span>
               <input id="empty-set-command" class="cleanup-expression" name="emptySetCommand" type="text" value="\varnothing" aria-label="Empty-set command" spellcheck="false" />
             </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="normalizeMathSymbolNotation" checked />
-              <span>Use macros for vectors, matrices, and sets</span>
+              <span>Use macros for vectors, matrices, and sets <small>Convert single bold or <code>\mathcal</code> symbols to <code>\v*</code>, <code>\m*</code>, and <code>\f*</code> macros.</small></span>
             </label>
             <label class="option-row">
               <input type="checkbox" data-cleanup-rule="unifySetNotation" checked />
-              <span>Use <code>\set{}</code> for sets</span>
+              <span>Use <code>\set{}</code> for sets <small>Replace matching escaped-brace variants with one set macro.</small></span>
             </label>
             <label class="option-row cleanup-expression-row">
               <input type="checkbox" data-cleanup-rule="unifyTransposeNotation" checked />
-              <span>Use <code>\transpose</code> for transposes</span>
+              <span>Use <code>\transpose</code> for transposes <small>Normalize <code>^{T}</code>, <code>^{\top}</code>, and related spellings.</small></span>
               <input
                 id="transpose-expression"
                 class="cleanup-expression"

@@ -58,6 +58,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
 test('describes CLI defaults, streams, failures, and only supported installation modes', () => {
   for (const phrase of [
     'Node.js 22 or newer',
+    'npm install --global proofweave',
     'stdin',
     'stdout',
     'stderr',
@@ -70,7 +71,7 @@ test('describes CLI defaults, streams, failures, and only supported installation
     assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
   }
   assert.match(readme, /cannot be combined\s+with `--output`/)
-  assert.doesNotMatch(readme, /npm install -g proofweave|docker compose|from ['"]proofweave['"]/i)
+  assert.doesNotMatch(readme, /docker compose|from ['"]proofweave['"]/i)
   assert.doesNotMatch(readme, /AI-generated|publication-ready/)
   assert.doesNotMatch(CLI_HELP, /AI-generated|publication-ready/)
 })
