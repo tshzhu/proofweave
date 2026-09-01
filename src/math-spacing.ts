@@ -17,7 +17,6 @@ export interface MathCleanupOptions {
   normalizeInequalityCommands: boolean
   greaterEqualCommand: string
   lessEqualCommand: string
-  normalizeNotEqualCommand: boolean
   notEqualCommand: string
   normalizeEmptySetCommand: boolean
   emptySetCommand: string
@@ -48,7 +47,6 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   normalizeInequalityCommands: true,
   greaterEqualCommand: '\\ge',
   lessEqualCommand: '\\le',
-  normalizeNotEqualCommand: true,
   notEqualCommand: '\\neq',
   normalizeEmptySetCommand: true,
   emptySetCommand: '\\varnothing',
@@ -1386,9 +1384,9 @@ function normalizeSymbolCommands(
     }
     let replacement = command
     let end = commandEnd
-    if (cleanup.normalizeNotEqualCommand && (command === '\\ne' || command === '\\neq')) {
+    if (cleanup.normalizeInequalityCommands && (command === '\\ne' || command === '\\neq')) {
       replacement = cleanup.notEqualCommand
-    } else if (cleanup.normalizeNotEqualCommand && command === '\\not') {
+    } else if (cleanup.normalizeInequalityCommands && command === '\\not') {
       while (/[ \t]/.test(value[end] ?? '')) end += 1
       if (value[end] === '=') {
         replacement = cleanup.notEqualCommand

@@ -141,22 +141,21 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
   ])
   assert.match(html, /name="mathSpacingEnabled" checked/)
   assert.equal((html.match(/data-math-spacing-rule="[^"]+" checked/g) ?? []).length, 6)
-  assert.equal((html.match(/data-cleanup-rule="[^"]+" checked/g) ?? []).length, 9)
-  assert.equal((html.match(/data-cleanup-rule="[^"]+"/g) ?? []).length, 9)
+  assert.equal((html.match(/data-cleanup-rule="[^"]+" checked/g) ?? []).length, 8)
+  assert.equal((html.match(/data-cleanup-rule="[^"]+"/g) ?? []).length, 8)
   assert.match(html, /class="option-row math-spacing-master"[\s\S]*class="math-spacing-rules"/)
   assert.ok(html.indexOf('name="mathSpacingEnabled"') < html.indexOf('data-math-spacing-rule="relations"'))
   assert.doesNotMatch(detailsSection('Math spacing'), /data-cleanup-rule=/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="removeBoxed" checked[\s\S]*data-cleanup-rule="normalizeLabelPrefixes" checked[\s\S]*data-cleanup-rule="fontCommandBraces" checked[\s\S]*data-cleanup-rule="collapseSpaces" checked/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifySetNotation" checked/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="normalizeInequalityCommands" checked/)
-  assert.match(detailsSection('Cleanup'), /name="greaterEqualCommand"[^>]+value="\\ge"/)
-  assert.match(detailsSection('Cleanup'), /name="lessEqualCommand"[^>]+value="\\le"/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="normalizeNotEqualCommand" checked/)
-  assert.match(detailsSection('Cleanup'), /name="notEqualCommand"[^>]+value="\\neq"/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="normalizeEmptySetCommand" checked/)
-  assert.match(detailsSection('Cleanup'), /name="emptySetCommand"[^>]+value="\\varnothing"/)
-  assert.match(detailsSection('Cleanup'), /data-cleanup-rule="unifyTransposeNotation" checked/)
-  assert.match(detailsSection('Cleanup'), /name="transposeExpression"[^>]+value="\\mkern-1\.0mu\\mathsf\{T\}"/)
+  assert.match(detailsSection('Tidy'), /data-cleanup-rule="removeBoxed" checked[\s\S]*data-cleanup-rule="normalizeLabelPrefixes" checked[\s\S]*data-cleanup-rule="fontCommandBraces" checked[\s\S]*data-cleanup-rule="collapseSpaces" checked/)
+  assert.match(detailsSection('Tidy'), /data-cleanup-rule="unifySetNotation" checked/)
+  assert.match(detailsSection('Tidy'), /data-cleanup-rule="normalizeInequalityCommands" checked/)
+  assert.match(detailsSection('Tidy'), /name="greaterEqualCommand"[^>]+value="\\ge"/)
+  assert.match(detailsSection('Tidy'), /name="lessEqualCommand"[^>]+value="\\le"/)
+  assert.match(detailsSection('Tidy'), /name="notEqualCommand"[^>]+value="\\neq"/)
+  assert.match(detailsSection('Tidy'), /data-cleanup-rule="normalizeEmptySetCommand" checked/)
+  assert.match(detailsSection('Tidy'), /name="emptySetCommand"[^>]+value="\\varnothing"/)
+  assert.match(detailsSection('Tidy'), /data-cleanup-rule="unifyTransposeNotation" checked/)
+  assert.match(detailsSection('Tidy'), /name="transposeExpression"[^>]+value="\\mkern-1\.0mu\\mathsf\{T\}"/)
   assert.match(main, /validateTransposeExpression/)
   assert.match(main, /validateInequalityCommand/)
   assert.match(main, /transposeExpressionInput\.value = options\.cleanup\.transposeExpression/)
@@ -182,7 +181,7 @@ test('uses sentence case headings and places a dynamic CLI panel last', () => {
       'Display math (main text)',
       'Section headings',
       'Math spacing',
-      'Cleanup',
+      'Tidy',
       'Diagnostics',
       'CLI',
       'URL',

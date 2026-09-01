@@ -16,7 +16,6 @@ export interface CleanupOptions {
   normalizeInequalityCommands: boolean;
   greaterEqualCommand: string;
   lessEqualCommand: string;
-  normalizeNotEqualCommand: boolean;
   notEqualCommand: string;
   normalizeEmptySetCommand: boolean;
   emptySetCommand: string;
@@ -55,7 +54,6 @@ export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   normalizeInequalityCommands: true,
   greaterEqualCommand: "\\ge",
   lessEqualCommand: "\\le",
-  normalizeNotEqualCommand: true,
   notEqualCommand: "\\neq",
   normalizeEmptySetCommand: true,
   emptySetCommand: "\\varnothing",
@@ -135,7 +133,7 @@ export function optionsToCLIArgs(options: Readonly<ConverterOptions>): string[] 
   if (options.cleanup.lessEqualCommand !== DEFAULT_CLEANUP_OPTIONS.lessEqualCommand) {
     args.push(`--le-command=${options.cleanup.lessEqualCommand}`);
   }
-  if (!options.cleanup.normalizeNotEqualCommand) args.push("--no-normalize-not-equal-command");
+  // The comparison cleanup flag controls >=, <=, and != families together.
   if (options.cleanup.notEqualCommand !== DEFAULT_CLEANUP_OPTIONS.notEqualCommand) {
     args.push(`--ne-command=${options.cleanup.notEqualCommand}`);
   }
@@ -310,7 +308,6 @@ function setBooleanOption(options: ConverterOptions, flag: string): boolean {
     "font-command-braces": "fontCommandBraces",
     "collapse-spaces": "collapseSpaces",
     "normalize-inequality-commands": "normalizeInequalityCommands",
-    "normalize-not-equal-command": "normalizeNotEqualCommand",
     "normalize-empty-set-command": "normalizeEmptySetCommand",
     "unify-set-notation": "unifySetNotation",
     "unify-transpose": "unifyTransposeNotation",
@@ -459,7 +456,6 @@ Conversion options:
   --[no-]normalize-inequality-commands
   --ge-command=LATEX
   --le-command=LATEX
-  --[no-]normalize-not-equal-command
   --ne-command=LATEX
   --[no-]normalize-empty-set-command
   --empty-set-command=LATEX

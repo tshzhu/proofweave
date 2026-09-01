@@ -100,7 +100,6 @@ test('serializes and parses all independent cleanup options', () => {
     normalizeInequalityCommands: true,
     greaterEqualCommand: String.raw`\ge`,
     lessEqualCommand: String.raw`\le`,
-    normalizeNotEqualCommand: true,
     notEqualCommand: String.raw`\neq`,
     normalizeEmptySetCommand: true,
     emptySetCommand: String.raw`\varnothing`,
@@ -114,7 +113,6 @@ test('serializes and parses all independent cleanup options', () => {
     ['fontCommandBraces', 'font-command-braces'],
     ['collapseSpaces', 'collapse-spaces'],
     ['normalizeInequalityCommands', 'normalize-inequality-commands'],
-    ['normalizeNotEqualCommand', 'normalize-not-equal-command'],
     ['normalizeEmptySetCommand', 'normalize-empty-set-command'],
   ] as const) {
     const configured = cloneConverterOptions()
