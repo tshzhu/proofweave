@@ -62,7 +62,7 @@ test('describes CLI defaults, streams, failures, and only supported installation
     'non-zero exit status',
     '`--modify` is destructive',
     'enabled by default',
-    'Cleanup options remain effective when `--no-math-spacing` is used',
+    'Tidy options remain effective when `--no-math-spacing` is used',
     'math-spacing subrules are effective only while `--math-spacing` is enabled',
   ]) {
     assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
