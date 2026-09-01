@@ -132,8 +132,25 @@ The CLI and website use the same conversion core and options.
 
 ### Requirements and installation
 
-Node.js 22 or newer is required. ProofWeave is currently installed from source;
-the package is not published to the npm registry.
+Node.js 22 or newer is required. The CLI is published as the `proofweave`
+package on npm.
+
+Install the released CLI globally:
+
+```sh
+npm install --global proofweave
+proofweave --version
+```
+
+Or install it locally in a project:
+
+```sh
+npm install proofweave
+npx proofweave proof.md > proof.tex
+```
+
+The package contains the production CLI bundle and its launcher; the web editor
+remains available at [tshzhu.github.io/proofweave](https://tshzhu.github.io/proofweave/).
 
 ```sh
 git clone https://github.com/tshzhu/proofweave.git

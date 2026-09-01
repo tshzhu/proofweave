@@ -1,7 +1,6 @@
 {
   "name": "proofweave",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0.0",
   "description": "Convert Markdown mathematical proofs into clean, well-formatted LaTeX.",
   "homepage": "https://tshzhu.github.io/proofweave/",
   "repository": {
@@ -9,6 +8,16 @@
     "url": "git+https://github.com/tshzhu/proofweave.git"
   },
   "license": "MIT",
+  "files": [
+    "bin",
+    "dist-cli",
+    "LICENSE",
+    "README.md",
+    "package.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -21,6 +30,7 @@
     "build": "npm run check && npm run build:web && npm run build:cli",
     "build:web": "vite build",
     "build:cli": "vite build --config vite.cli.config.ts",
+    "prepublishOnly": "npm run build",
     "benchmark": "node --experimental-strip-types scripts/benchmark.ts",
     "check": "tsc --noEmit",
     "cli": "node --experimental-strip-types src/cli.ts",

@@ -39,7 +39,7 @@ test('uses the BibTeX Tidy editor and fixed-sidebar structure', () => {
 })
 
 test('uses the ProofWeave brand and concise conversion description', () => {
-  assert.match(html, /<title>ProofWeave — Convert Markdown proofs into clean LaTeX<\/title>/)
+  assert.match(html, /<title>ProofWeave - Turn Markdown proofs into clean LaTeX<\/title>/)
   assert.match(html, /<h1>ProofWeave<\/h1>/)
   assert.match(html, /Convert Markdown mathematical proofs into clean, well-formatted LaTeX\./)
   assert.doesNotMatch(html, /AI-generated|never uploaded|publishing, reading, and continued editing/)
@@ -158,6 +158,17 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
   assert.match(detailsSection('Tidy'), /data-cleanup-rule="normalizeEmptySetCommand" checked/)
   assert.match(detailsSection('Tidy'), /name="emptySetCommand"[^>]+value="\\varnothing"/)
   assert.match(detailsSection('Tidy'), /data-cleanup-rule="normalizeMathSymbolNotation" checked[\s\S]*Use macros for vectors, matrices, and sets/)
+  for (const description of [
+    'Keep the contents and drop only the box.',
+    'Map theorem labels and references to',
+    'Turn <code>\\mathcal X</code> into <code>\\mathcal{X}</code>',
+    'Replace runs of literal spaces',
+    'Normalize equivalent greater-than',
+    'Choose a single command for',
+    'Convert single bold or <code>\\mathcal</code> symbols',
+    'Replace matching escaped-brace variants',
+    'Normalize <code>^{T}</code>',
+  ]) assert.ok(detailsSection('Tidy').includes(description), `Tidy is missing explanation: ${description}`)
   assert.match(detailsSection('Tidy'), /data-cleanup-rule="unifyTransposeNotation" checked/)
   assert.match(detailsSection('Tidy'), /name="transposeExpression"[^>]+value="\\mkern-1\.0mu\\mathsf\{T\}"/)
   assert.match(main, /validateTransposeExpression/)
