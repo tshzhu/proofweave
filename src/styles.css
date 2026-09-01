@@ -687,7 +687,7 @@ details[open] summary::after {
   grid-column: auto;
 }
 
-.cleanup-expression-pair label {
+.cleanup-expression-pair span {
   color: var(--light6);
   font-size: 11px;
 }

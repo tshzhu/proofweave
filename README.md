@@ -203,10 +203,10 @@ Value options accept either `--option=value` or `--option value`.
 
 ### Tidy and math-spacing options
 
-All cleanup options and the math-spacing master/rules are enabled by default.
+All Tidy options and the math-spacing master/rules are enabled by default.
 Both positive and negative forms are accepted, for example `--remove-boxed`
 and `--no-remove-boxed`.
-Cleanup options remain effective when `--no-math-spacing` is used; the six
+Tidy options remain effective when `--no-math-spacing` is used; the six
 math-spacing subrules are effective only while `--math-spacing` is enabled.
 
 | Option | Effect |
