@@ -68,10 +68,11 @@ test('describes CLI defaults, streams, failures, and only supported installation
     'Tidy options remain effective when `--no-math-spacing` is used',
     'math-spacing subrules are effective only while `--math-spacing` is enabled',
   ]) {
-    assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
+  assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
   }
   assert.match(readme, /cannot be combined\s+with `--output`/)
   assert.doesNotMatch(readme, /docker compose|from ['"]proofweave['"]/i)
   assert.doesNotMatch(readme, /AI-generated|publication-ready/)
   assert.doesNotMatch(CLI_HELP, /AI-generated|publication-ready/)
+  assert.match(readme, /npm package contains only the production CLI bundle/i)
 })

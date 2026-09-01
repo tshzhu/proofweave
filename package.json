@@ -9,8 +9,8 @@
   },
   "license": "MIT",
   "files": [
-    "bin",
-    "dist-cli",
+    "bin/proofweave.js",
+    "dist-cli/proofweave.js",
     "LICENSE",
     "README.md",
     "package.json"
@@ -23,7 +23,7 @@
   },
   "type": "module",
   "bin": {
-    "proofweave": "./bin/proofweave.js"
+    "proofweave": "bin/proofweave.js"
   },
   "scripts": {
     "dev": "vite",
