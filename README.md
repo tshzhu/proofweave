@@ -151,7 +151,7 @@ npx proofweave@latest proof.md > proof.tex
 Or add a fixed version as a project development dependency:
 
 ```sh
-npm install --save-dev proofweave@1.0.0
+npm install --save-dev proofweave@1.0.1
 npx proofweave proof.md > proof.tex
 ```
 
@@ -199,8 +199,8 @@ To release a new version:
 4. Create and push the matching tag, for example:
 
    ```sh
-   git tag v1.0.1
-   git push origin v1.0.1
+   git tag v1.0.2
+   git push origin v1.0.2
    ```
 
 Pushing the branch alone never publishes to npm. The matching version tag is the

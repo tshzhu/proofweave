@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import { CLI_VERSION } from '../src/options.ts'
+
 const workflow = readFileSync(new URL('../.github/workflows/publish.yml', import.meta.url), 'utf8')
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 
@@ -24,6 +26,7 @@ test('publishes to npm only from matching version tags through Trusted Publishin
 })
 
 test('keeps the npm package CLI-only and avoids rebuilding the website on publish', () => {
+  assert.equal(CLI_VERSION, packageJson.version)
   assert.deepEqual(packageJson.files, [
     'bin/proofweave.js',
     'dist-cli/proofweave.js',
