@@ -59,6 +59,8 @@ test('describes CLI defaults, streams, failures, and only supported installation
   for (const phrase of [
     'Node.js 22 or newer',
     'npm install --global proofweave',
+    'npx proofweave@latest',
+    'Trusted Publishing',
     'stdin',
     'stdout',
     'stderr',

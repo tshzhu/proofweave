@@ -135,17 +135,23 @@ The CLI and website use the same conversion core and options.
 Node.js 22 or newer is required. The CLI is published as the `proofweave`
 package on npm.
 
-Install the released CLI globally:
+Install the latest released CLI globally:
 
 ```sh
-npm install --global proofweave
-proofweave --version  # 1.0.0
+npm install --global proofweave@latest
+proofweave proof.md > proof.tex
 ```
 
-Or install it locally in a project:
+Run it once without a global install:
 
 ```sh
-npm install proofweave
+npx proofweave@latest proof.md > proof.tex
+```
+
+Or add a fixed version as a project development dependency:
+
+```sh
+npm install --save-dev proofweave@1.0.0
 npx proofweave proof.md > proof.tex
 ```
 
@@ -175,6 +181,30 @@ proofweave --version
 
 Re-run `npm run build` after changing the TypeScript source because the executable
 loads `dist-cli/proofweave.js`.
+
+### Publishing releases
+
+npm releases are published by the tag-only GitHub Actions workflow in
+`.github/workflows/publish.yml`. It uses npm Trusted Publishing with GitHub OIDC,
+so the repository does not store an `NPM_TOKEN`. The workflow runs only when a
+tag beginning with `v` is pushed and refuses to publish unless the tag, the
+`package.json` version, and `proofweave --version` agree.
+
+To release a new version:
+
+1. Update the version in `package.json`, `package-lock.json`, and
+   `src/options.ts` (`CLI_VERSION`).
+2. Run `npm test`, `npm run check`, and `npm run build`.
+3. Commit and push the release changes to `main`.
+4. Create and push the matching tag, for example:
+
+   ```sh
+   git tag v1.0.1
+   git push origin v1.0.1
+   ```
+
+Pushing the branch alone never publishes to npm. The matching version tag is the
+only release trigger.
 
 ### Usage
 
