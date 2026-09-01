@@ -37,7 +37,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
     const optionField = /^\s{2}(.+?)(?:\s{2,}|$)/.exec(line)?.[1]
     return optionField ? [...optionField.matchAll(/(?:^|,\s*)(--?[^,\s]+)/g)].map((match) => match[1]!) : []
   })
-  assert.equal(helpOptions.length, 34)
+  assert.equal(helpOptions.length, 33)
   for (const option of helpOptions) {
     assert.ok(readme.includes(`\`${option}\``), `README does not document ${option}`)
   }

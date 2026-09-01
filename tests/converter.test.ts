@@ -13,7 +13,7 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, normalizeNotEqualCommand: true, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
@@ -351,7 +351,7 @@ c &= d
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, normalizeNotEqualCommand: true, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: false, unifyTransposeNotation: false, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -633,7 +633,7 @@ statement-body
     statementDisplayMath: 'brackets',
     outsideDisplayMath: 'equation',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, normalizeNotEqualCommand: true, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 
@@ -762,7 +762,6 @@ function assertMathSpacingIsStable(input: string): void {
     unifySetNotation: false,
     unifyTransposeNotation: false,
     normalizeInequalityCommands: false,
-    normalizeNotEqualCommand: false,
     normalizeEmptySetCommand: false,
   }
   for (const segment of blueprintMathSegments(input)) {

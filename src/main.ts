@@ -577,7 +577,7 @@ optionsForm.addEventListener('change', (event) => {
       return
     }
 
-    const cleanupRule = target.dataset.cleanupRule
+  const cleanupRule = target.dataset.cleanupRule
     if (isCleanupRule(cleanupRule)) {
       applyConversionOptions({
         ...options,

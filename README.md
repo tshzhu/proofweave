@@ -201,7 +201,7 @@ Value options accept either `--option=value` or `--option value`.
 | `--other-display=dollars|brackets|equation` | Display math in proofs and ordinary text: `\[...\]` (default), `$$...$$`, or `equation`. A display containing `\tag` is always forced to `equation`. |
 | `--section-numbering=unnumbered|numbered` | Emit `\section*{...}`-style headings (default) or numbered section commands. |
 
-### Cleanup and math-spacing options
+### Tidy and math-spacing options
 
 All cleanup options and the math-spacing master/rules are enabled by default.
 Both positive and negative forms are accepted, for example `--remove-boxed`
@@ -215,10 +215,9 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
 | `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
 | `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
-| `--[no-]normalize-inequality-commands` | Normalize `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, plus `<=`, `< =`, `\le`, `\leq`, `\leqq`, and `\leqslant` (enabled by default). |
+| `--[no-]normalize-inequality-commands` | Use consistent comparison commands for `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, `<=`, `< =`, `\le`, `\leq`, `\leqq`, `\leqslant`, `\ne`, `\neq`, and `\not=` (enabled by default). |
 | `--ge-command=LATEX` | Target greater-or-equal control word; default is `\ge`. |
 | `--le-command=LATEX` | Target less-or-equal control word; default is `\le`. |
-| `--[no-]normalize-not-equal-command` | Normalize `\ne`, `\neq`, and `\not=` (enabled by default). |
 | `--ne-command=LATEX` | Target not-equal control word; default is `\neq`. |
 | `--[no-]normalize-empty-set-command` | Normalize `\emptyset` and `\varnothing` (enabled by default). |
 | `--empty-set-command=LATEX` | Target empty-set control word; default is `\varnothing`. |

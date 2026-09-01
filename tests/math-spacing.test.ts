@@ -48,7 +48,7 @@ test('normalizes not-equal and empty-set variants to configurable commands', () 
   const configured = cleanup({ notEqualCommand: String.raw`\ne`, emptySetCommand: String.raw`\emptyset` })
   assert.equal(formatMathSpacing(String.raw`a\neq b, A=\varnothing`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`a \ne b, A = \emptyset`)
   assert.equal(formatMathSpacing(String.raw`\text{a\ne b}+c\neq d`, DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`\text{a \ne b} + c \ne d`)
-  const disabled = cleanup({ normalizeNotEqualCommand: false, normalizeEmptySetCommand: false })
+  const disabled = cleanup({ normalizeInequalityCommands: false, normalizeEmptySetCommand: false })
   assert.equal(formatMathSpacing(String.raw`a\ne b, A=\emptyset`, { ...DEFAULT_MATH_SPACING_OPTIONS, enabled: false }, disabled), String.raw`a\ne b, A=\emptyset`)
 })
 
