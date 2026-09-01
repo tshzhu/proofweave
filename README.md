@@ -110,32 +110,17 @@ This example demonstrates headings, theorem environments, lists, and math.
 ```
 <!-- proofweave-example-output:end -->
 
-This is LaTeX body content, not a complete document. The leading indentation
-above consists of tabs because `--indent=tab` is the default. The default
-formatter also normalizes math spacing, converts `\mathcal{X}` to `\fX`, uses `equation`
-inside statements, creates canonical labels, and removes the proof-final
-`\square` because LaTeX's `proof` environment supplies the QED symbol. The
-example also shows the default vector/matrix/family, set, and transpose cleanup.
-Declarations are emitted only when a matching expression was actually changed.
-
-HTML-style Markdown comments `<!-- ... -->` are converted to safe, line-by-line
-LaTeX comments. A multi-line comment becomes one `%` line per content line; the
-opening and closing marker lines are not content and are omitted. One blank line
-is kept before and after the comment, while headings, lists, formulas, and other
-Markdown-looking text inside it remain inactive.
-
-<a name="cli"></a>
+- The output is a LaTeX body, not a complete document; it does not add a preamble or document environment.
+- Tabs are the default structural indentation, and display math in theorem statements uses `equation`.
+- Math spacing, canonical labels, three-letter prefixes, notation macros, set/transpose cleanup, and proof-final `\square` cleanup are enabled by default.
+- Declarations such as `\vx`, `\mTheta`, `\fX`, `\set`, and `\transpose` are emitted only when a matching expression was actually changed.
+- Markdown comments become line-by-line LaTeX comments; their marker-only edge lines are removed and their contents remain inactive.
 
 ## CLI
 
-The CLI and website use the same conversion core and options.
+### Installation and usage
 
-### Requirements and installation
-
-Node.js 22 or newer is required. The CLI is published as the `proofweave`
-package on npm.
-
-Install the latest released CLI globally:
+Node.js 22 or newer is required. The published npm package contains only the CLI bundle.
 
 ```sh
 npm install --global proofweave@latest
@@ -148,304 +133,152 @@ Run it once without a global install:
 npx proofweave@latest proof.md > proof.tex
 ```
 
-Or add a fixed version as a project development dependency:
-
-```sh
-npm install --save-dev proofweave@1.0.1
-npx proofweave proof.md > proof.tex
-```
-
-The npm package contains only the production CLI bundle and its launcher; the
-web editor is deployed separately at
-[tshzhu.github.io/proofweave](https://tshzhu.github.io/proofweave/).
-
-```sh
-git clone https://github.com/tshzhu/proofweave.git
-cd proofweave
-npm ci
-npm run build
-```
-
-Run the repository-local executable:
-
-```sh
-./bin/proofweave.js proof.md > proof.tex
-```
-
-Optionally register the `proofweave` command on your local `PATH`:
-
-```sh
-npm link
-proofweave --version
-```
-
-Re-run `npm run build` after changing the TypeScript source because the executable
-loads `dist-cli/proofweave.js`.
-
-### Publishing releases
-
-npm releases are published by the tag-only GitHub Actions workflow in
-`.github/workflows/publish.yml`. It uses npm Trusted Publishing with GitHub OIDC,
-so the repository does not store an `NPM_TOKEN`. The workflow runs only when a
-tag beginning with `v` is pushed and refuses to publish unless the tag, the
-`package.json` version, and `proofweave --version` agree.
-
-To release a new version:
-
-1. Update the version in `package.json`, `package-lock.json`, and
-   `src/options.ts` (`CLI_VERSION`).
-2. Run `npm test`, `npm run check`, and `npm run build`.
-3. Commit and push the release changes to `main`.
-4. Create and push the matching tag, for example:
-
-   ```sh
-   git tag v1.0.2
-   git push origin v1.0.2
-   ```
-
-Pushing the branch alone never publishes to npm. The matching version tag is the
-only release trigger.
-
-### Usage
+Usage summary:
 
 ```text
-Usage: proofweave [options] [FILE.md]
+proofweave [options] [FILE.md]
 ```
 
-ProofWeave accepts at most one input file, and file input must have a `.md`
-extension. It writes conversion diagnostics to stderr, leaving stdout or the
-selected output file reserved for LaTeX. Invocation errors such as an unknown
-option, an invalid value, multiple input files, or a non-Markdown input return a
-non-zero exit status.
+With no file, or with `-`, ProofWeave reads Markdown from stdin and writes LaTeX to stdout. Use
+`--output FILE`/`-o FILE` to write a separate file, or `--modify`/`-m` to replace the input `.md`
+file. Only one `.md` input file is accepted; diagnostics are written to stderr.
 
-### Input and output
+### Options
 
-| Invocation | Behavior |
-| --- | --- |
-| `proofweave proof.md` | Read `proof.md` and write LaTeX to stdout. |
-| `proofweave` | Read Markdown from stdin and write LaTeX to stdout. |
-| `proofweave -` | Explicitly read Markdown from stdin. |
-| `proofweave -o proof.tex proof.md` | Write LaTeX to `proof.tex`. |
-| `proofweave --output proof.tex proof.md` | Long form of `-o`. |
-| `proofweave -m proof.md` | Replace the input file with LaTeX. |
-| `proofweave --modify proof.md` | Long form of `-m`. |
-| `proofweave -- --proof.md` | Stop option parsing and read a file whose name starts with `-`. |
+#### General
 
-`--modify` is destructive: it overwrites the input `.md` file with generated
-LaTeX. It requires a real input file, cannot read stdin, and cannot be combined
-with `--output`.
+```text
+--help, -h
+    Show help.
 
-### General options
+--version, -v
+    Show the CLI version.
 
-| Option | Description |
-| --- | --- |
-| `--help`, `-h` | Print the complete CLI help and exit. |
-| `--version`, `-v` | Print the ProofWeave version and exit. |
-| `--output FILE`, `-o FILE` | Write LaTeX to `FILE` instead of stdout. |
-| `--modify`, `-m` | Overwrite the input `.md` file with LaTeX. |
+--output FILE, -o FILE
+    Write LaTeX to FILE instead of stdout.
 
-Value options accept either `--option=value` or `--option value`.
+--modify, -m
+    Overwrite the input Markdown file with LaTeX.
+```
 
-### Conversion options
+#### Conversion
 
-| Option | Values and effect |
-| --- | --- |
-| `--indent=tab|2|4|0` | Structural indentation: a tab (default), 2 spaces, 4 spaces, or no indentation. |
-| `--inline-math=dollar|parentheses` | Emit `$...$` (default) or `\(...\)`. |
-| `--statement-display=dollars|brackets|equation` | Display math inside theorem statements: `equation` (default), `$$...$$`, or `\[...\]`. A display containing `\tag` is always forced to `equation`. |
-| `--other-display=dollars|brackets|equation` | Display math in proofs and ordinary text: `\[...\]` (default), `$$...$$`, or `equation`. A display containing `\tag` is always forced to `equation`. |
-| `--section-numbering=unnumbered|numbered` | Emit `\section*{...}`-style headings (default) or numbered section commands. |
+```text
+--indent=tab|2|4|0
+    Structural indentation; the default is tab.
 
-### Tidy and math-spacing options
+--inline-math=dollar|parentheses
+    Emit `$...$` (default) or `\(...\)`.
 
-All Tidy options and the math-spacing master/rules are enabled by default.
-Both positive and negative forms are accepted, for example `--remove-boxed`
-and `--no-remove-boxed`.
-Tidy options remain effective when `--no-math-spacing` is used; the six
-math-spacing subrules are effective only while `--math-spacing` is enabled.
+--statement-display=dollars|brackets|equation
+    Display math inside theorem statements; the default is equation.
 
-| Option | Effect |
-| --- | --- |
-| `--[no-]remove-boxed` | Remove or preserve `\boxed{...}` wrappers while retaining their contents. |
-| `--[no-]normalize-label-prefixes` | Normalize theorem labels and existing `\ref`, `\eqref`, `\cref`, and `\label` prefixes to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, and `rmk`. |
-| `--[no-]font-command-braces` | Add braces around single-atom math font arguments, for example `\mathcal X` → `\mathcal{X}`. |
-| `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
-| `--[no-]normalize-inequality-commands` | Use consistent comparison commands for `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, `<=`, `< =`, `\le`, `\leq`, `\leqq`, `\leqslant`, `\ne`, `\neq`, and `\not=` (enabled by default). |
-| `--ge-command=LATEX` | Target greater-or-equal control word; default is `\ge`. |
-| `--le-command=LATEX` | Target less-or-equal control word; default is `\le`. |
-| `--ne-command=LATEX` | Target not-equal control word; default is `\neq`. |
-| `--[no-]normalize-empty-set-command` | Normalize `\emptyset` and `\varnothing` (enabled by default). |
-| `--empty-set-command=LATEX` | Target empty-set control word; default is `\varnothing`. |
-| `--[no-]normalize-math-symbols` | Convert a single bold lowercase Latin/Greek math symbol to `\v*`, a single bold uppercase Latin/Greek symbol to `\m*`, and a single `\mathcal` uppercase Latin symbol to `\f*` (enabled by default). |
-| `--[no-]unify-set-notation` | Convert matched escaped set braces such as `\{x\}`, `\big\{x\big\}`, and `\left\{x\right\}` to `\set{x}` (enabled by default). |
-| `--[no-]unify-transpose` | Convert transpose spellings such as `^{T}`, `^{\mathrm{T}}`, `^{\top}`, and `^{\intercal}` to `^\transpose` (enabled by default). |
-| `--transpose-expression=LATEX` | Define the body of `\transpose`; default is `\mkern-1.0mu\mathsf{T}`. The value must be a non-empty single-line expression with balanced braces and no unescaped `%`. |
-| `--[no-]math-spacing` | Enable or disable the math whitespace formatter as a whole. |
-| `--[no-]relations` | Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`. |
-| `--[no-]binary-operators` | Add consistent spaces around binary operators such as `+`, `-`, `*`, and `\times`, while protecting unary signs and scripts. |
-| `--[no-]punctuation` | Normalize spaces around commas, semicolons, and colons in math. |
-| `--[no-]compact-parentheses` | Keep delimiters and function calls compact, for example `f(x)` rather than `f ( x )`. |
-| `--[no-]paired-bars` | Normalize inner spacing for paired absolute-value and norm bars, for example `| x |`. |
-| `--[no-]named-functions` | Add the appropriate gap after functions such as `\sin`, `\log`, and `\exp`. |
+--other-display=dollars|brackets|equation
+    Display math in proofs and ordinary text; the default is brackets (`\[...\]`).
 
-Regardless of the selected display style, a formula containing `\tag{N}` uses
-an `equation` environment and receives an owner-aware label such as
-`\label{eqn:main-N}`. Unambiguous plain-text references such as `(N)` become
-`\eqref{eqn:main-N}`. Math-styled theorem references such as
-`\mathrm{lem:example}` become `\ref{lem:example}`.
+--section-numbering=unnumbered|numbered
+    Emit unnumbered section commands by default, or numbered commands.
 
-When notation cleanup actually changes a matching expression, the generated body
-starts with the corresponding `\newcommand` declaration. For example,
-`\mathbf{x}`, `\bm{\Theta}`, and `\mathcal{F}` become `\vx`, `\mTheta`, and
-`\fF`, with definitions based on `\bm` and `\mathcal`. Multi-symbol arguments
-such as `\mathbf{abcd}`, ordinary text, and content inside `\text{...}` are left
-unchanged. These `\v*`, `\m*`, and `\f*` conventions follow BAAI's
+Any display containing `\tag{...}` is forced to the equation environment.
+```
+
+#### Tidy
+
+```text
+--[no-]remove-boxed
+    Remove or preserve `\boxed{...}` wrappers.
+
+--[no-]normalize-label-prefixes
+    Normalize theorem labels and references to `thm`, `lem`, `pro`, `cor`, `asm`, `def`, or `rmk`.
+
+--[no-]font-command-braces
+    Add braces around single-atom font arguments, for example `\mathcal X` → `\mathcal{X}`.
+
+--[no-]collapse-spaces
+    Collapse repeated literal spaces inside math while preserving explicit TeX spacing.
+
+--[no-]normalize-inequality-commands
+    Normalize equivalent greater-than, less-than, and not-equal spellings.
+
+--ge-command=LATEX
+    Target greater-or-equal command; default `\ge`.
+
+--le-command=LATEX
+    Target less-or-equal command; default `\le`.
+
+--ne-command=LATEX
+    Target not-equal command; default `\neq`.
+
+--[no-]normalize-empty-set-command
+    Normalize `\emptyset` and `\varnothing`.
+
+--empty-set-command=LATEX
+    Target empty-set command; default `\varnothing`.
+
+--[no-]normalize-math-symbols
+    Convert single bold lowercase/uppercase symbols to `\v*`/`\m*`, and single uppercase `\mathcal` symbols to `\f*`.
+
+--[no-]unify-set-notation
+    Convert matched escaped-brace set variants to `\set{...}`.
+
+--[no-]unify-transpose
+    Convert transpose spellings such as `^{T}`, `^{\top}`, and `^{\intercal}` to `^\transpose`.
+
+--transpose-expression=LATEX
+    Define the body of `\transpose`; default `\mkern-1.0mu\mathsf{T}`.
+
+```
+
+The `\v*`, `\m*`, and `\f*` conventions follow BAAI's
 [Notation for Machine Learning](https://notation.baai.ac.cn/en).
 
-`\set` uses `\left\{#1\right\}`, while `\transpose` uses the configured
-expression wrapped in a definition. Enabled cleanup with no matching conversion
-does not emit an unused declaration. Declarations are deduplicated and appear
-before any other body content, including comments.
+#### Math spacing
 
-### Command examples
+```text
+--[no-]math-spacing
+    Enable or disable the math-spacing formatter as a whole.
 
-Write the default conversion to stdout:
+--[no-]relations
+    Add consistent spaces around relations such as `=`, `<`, `\le`, and `\in`.
 
-```sh
-proofweave proof.md > proof.tex
+--[no-]binary-operators
+    Add consistent spaces around binary operators such as `+`, `-`, `*`, and `\times`.
+
+--[no-]punctuation
+    Normalize spaces around commas, semicolons, and colons.
+
+--[no-]compact-parentheses
+    Keep delimiters and function calls compact, for example `f(x)`.
+
+--[no-]paired-bars
+    Normalize inner spacing for paired absolute-value and norm bars, for example `| x |`.
+
+--[no-]named-functions
+    Add the appropriate gap after functions such as `\sin`, `\log`, and `\exp`.
 ```
 
-Use stdin explicitly:
-
-```sh
-cat proof.md | proofweave - > proof.tex
-```
-
-Write a separate output file:
-
-```sh
-proofweave --output proof.tex proof.md
-```
-
-Overwrite the input file after reviewing the destructive behavior:
-
-```sh
-proofweave --modify proof.md
-```
-
-Choose non-default delimiters, indentation, and numbered headings:
-
-```sh
-proofweave \
-  --indent=4 \
-  --inline-math=parentheses \
-  --statement-display=brackets \
-  --other-display=dollars \
-  --section-numbering=numbered \
-  proof.md > proof.tex
-```
-
-Preserve `\boxed{...}` and turn off selected spacing rules:
-
-```sh
-proofweave \
-  --no-remove-boxed \
-  --no-paired-bars \
-  --no-collapse-spaces \
-  proof.md > proof.tex
-```
-
-Disable all optional math whitespace formatting:
-
-```sh
-proofweave --no-math-spacing proof.md > proof.tex
-```
-
-Disable set cleanup, or customize the default transpose definition:
-
-```sh
-proofweave \
-  --no-unify-set-notation \
-  --transpose-expression='\mkern-1.0mu\mathsf{T}' \
-  proof.md > proof.tex
-```
-
-Disable vector, matrix, and family macro normalization:
-
-```sh
-proofweave --no-normalize-math-symbols proof.md > proof.tex
-```
-
-When semantic cleanup modifies the input, the generated LaTeX starts with the
-required `\newcommand` declaration before the converted body.
-
-### Exit behavior
-
-- `--help` and `--version` exit successfully without reading input.
-- Successful conversion returns status 0. Conversion diagnostics are printed to
-  stderr and do not contaminate stdout.
-- Invalid invocations return status 1 and print a short error plus the
-  `proofweave --help` hint.
-- `--modify` requires a file and is mutually exclusive with `--output`.
-
-<a name="browser"></a>
+Tidy options remain active when `--no-math-spacing` is used; the six math-spacing subrules are
+effective only while `--math-spacing` is enabled. Use `proofweave --help` for the same option list
+in compact form.
 
 ## Browser
 
-Open <https://tshzhu.github.io/proofweave/>. Paste or drop one Markdown file into
-the editor, select conversion options in the sidebar, and switch to the generated
-LaTeX view. The browser and CLI expose the same conversion settings, and the
-sidebar's **CLI** section shows the command corresponding to the current options.
-
-The browser also provides syntax highlighting, diagnostics, copy/download
-actions, 80%–160% editor text zoom, and persistent light/dark theme selection.
-Conversion runs entirely in the browser.
+Open <https://tshzhu.github.io/proofweave/> to edit Markdown in the browser. The editor supports
+the same conversion options as the CLI, syntax highlighting, diagnostics, drag-and-drop of one
+`.md` file, copy/download actions, editor zoom, and light/dark themes. Conversion runs entirely in
+the browser.
 
 ### Shareable option URLs
 
-When a conversion option differs from the default, ProofWeave adds an `opt`
-query parameter to the current URL. The value is URL-encoded, versioned JSON
-whose `args` array contains the same conversion flags shown by the CLI panel,
-for example:
+When a conversion option differs from the default, ProofWeave adds a versioned `opt` query
+parameter containing the same conversion flags shown in the CLI panel:
 
 ```text
-https://tshzhu.github.io/proofweave/?opt=%7B%22v%22%3A1%2C%22args%22%3A%5B%22--indent%3D4%22%2C%22--no-remove-boxed%22%5D%7D
+https://tshzhu.github.io/proofweave/?opt=%7B%22v%22%3A1%2C%22args%22%3A%5B%22--indent%3D4%22%5D%7D
 ```
 
-The sidebar's **CLI** section shows the equivalent local command and has its own
-copy button. The following **URL** section shows the clean shareable URL and
-provides a separate copy button. Both fields wrap and display their full content.
-
-Opening that link restores the conversion settings and updates the form before
-the first conversion. Changing a setting updates the URL with
-`history.replaceState`, so the page is not reloaded. Returning to the default
-configuration removes `opt`. The URL stores conversion options only; Markdown
-content, theme, editor zoom, and the selected view are not included. Malformed,
-unknown-version, or non-conversion payloads are rejected safely and the page
-falls back to defaults with a visible diagnostic.
-
-## Supported input and output
-
-ProofWeave recognizes `theorem`, `lemma`, `proposition`, `corollary`,
-`assumption`, `definition`, and `remark` headings at any Markdown heading level.
-Nested `statement` and `proof` headings produce the corresponding LaTeX
-environments. Labels use canonical prefixes `thm`, `lem`, `pro`, `cor`, `asm`,
-`def`, and `rmk`.
-
-Ordinary headings, paragraphs, ordered and unordered nested lists, inline math,
-display math, bold, `*italic*` → `\textit{...}`, and code spans are supported. Proof-final
-`\square` markers are removed automatically. Tagged equations receive stable
-labels and unambiguous references are converted to `\eqref`. Optional semantic
-cleanup can unify set braces and transpose superscripts as described above.
-
-Fenced code blocks are preserved as readable text and reported with a diagnostic;
-their headings and HTML-comment-looking lines are not parsed as document structure.
-HTML comments outside code are emitted as line-by-line LaTeX comments, with the
-marker-only edge lines removed.
-
-The output is embeddable LaTeX body content. ProofWeave does not add
-`\documentclass`, package imports, theorem declarations, or
-`\begin{document}`/`\end{document}`.
+Copy the URL or the equivalent CLI command from the sidebar. Markdown content, theme, editor zoom,
+and selected view are not stored in the URL.
 
 ## Development
 
@@ -455,19 +288,13 @@ npm run dev
 npm test
 npm run check
 npm run build
-npm run benchmark -- path/to/blueprint.md
-npm run preview -- --port 4173
+npm run preview -- --port 4187
 ```
 
-- `npm run dev` starts the Vite development server.
-- `npm test` runs the converter, CLI, UI, and documentation tests.
-- `npm run check` performs TypeScript type checking.
-- `npm run build` creates the website in `dist/` and the CLI bundle in
-  `dist-cli/`.
-- `npm run benchmark -- path/to/blueprint.md` reports warm conversion latency,
-  input/output sizes, and diagnostics without changing the source file.
-- `npm run preview -- --port 4173` serves the production website locally.
+`npm run build` creates the browser site in `dist/` and the CLI bundle in `dist-cli/`.
+`npm pack --dry-run` verifies that the npm package contains only the CLI launcher, CLI bundle,
+README, LICENSE, and package metadata.
 
 ## License
 
-[MIT](LICENSE)
+MIT
