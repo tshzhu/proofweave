@@ -149,8 +149,9 @@ npm install proofweave
 npx proofweave proof.md > proof.tex
 ```
 
-The package contains the production CLI bundle and its launcher; the web editor
-remains available at [tshzhu.github.io/proofweave](https://tshzhu.github.io/proofweave/).
+The npm package contains only the production CLI bundle and its launcher; the
+web editor is deployed separately at
+[tshzhu.github.io/proofweave](https://tshzhu.github.io/proofweave/).
 
 ```sh
 git clone https://github.com/tshzhu/proofweave.git
