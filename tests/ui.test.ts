@@ -160,16 +160,22 @@ test('exposes all editor views and conversion options as sidebar radios', () => 
   assert.match(detailsSection('Tidy'), /name="emptySetCommand"[^>]+value="\\varnothing"/)
   assert.match(detailsSection('Tidy'), /data-cleanup-rule="normalizeMathSymbolNotation" checked[\s\S]*Use macros for vectors, matrices, and sets/)
   for (const description of [
-    'Keep the contents and drop only the box.',
-    'Map theorem labels and references to',
-    'Turn <code>\\mathcal X</code> into <code>\\mathcal{X}</code>',
-    'Replace runs of literal spaces',
-    'Normalize equivalent greater-than',
-    'Choose a single command for',
-    'Convert single bold or <code>\\mathcal</code> symbols',
-    'Replace matching escaped-brace variants',
-    'Normalize <code>^{T}</code>',
+    'Unwrap boxes; keep their contents.',
+    'Use canonical prefixes in labels and refs.',
+    '<code>\\mathcal X</code> → <code>\\mathcal{X}</code>.',
+    'Collapse spaces; preserve TeX spacing.',
+    'Unify <code>\\ge</code>, <code>\\le</code>, and <code>\\neq</code>.',
+    'Unify <code>\\emptyset</code> and <code>\\varnothing</code>.',
+    'Map bold/<code>\\mathcal</code> to <code>\\v*</code>/<code>\\m*</code>/<code>\\f*</code>.',
+    'Brace variants → <code>\\set{...}</code>.',
+    '<code>T</code>/<code>\\top</code>/<code>\\intercal</code> → <code>\\transpose</code>.',
   ]) assert.ok(detailsSection('Tidy').includes(description), `Tidy is missing explanation: ${description}`)
+  const tidyExplanations = [...detailsSection('Tidy').matchAll(/<small>([\s\S]*?)<\/small>/g)]
+  assert.equal(tidyExplanations.length, 9)
+  for (const [, explanation = ''] of tidyExplanations) {
+    const plainText = explanation.replace(/<[^>]+>/g, '').replaceAll('&amp;', '&').trim()
+    assert.ok(plainText.length <= 50, `Tidy explanation is too long: ${plainText}`)
+  }
   assert.match(detailsSection('Tidy'), /data-cleanup-rule="unifyTransposeNotation" checked/)
   assert.match(detailsSection('Tidy'), /name="transposeExpression"[^>]+value="\\mkern-1\.0mu\\mathsf\{T\}"/)
   assert.match(main, /validateTransposeExpression/)

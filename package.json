@@ -1,6 +1,6 @@
 {
   "name": "proofweave",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Convert Markdown mathematical proofs into clean, well-formatted LaTeX.",
   "homepage": "https://tshzhu.github.io/proofweave/",
   "repository": {

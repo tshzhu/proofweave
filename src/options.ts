@@ -74,7 +74,7 @@ export const DEFAULT_CONVERTER_OPTIONS: Readonly<ConverterOptions> = {
   mathSpacing: DEFAULT_MATH_SPACING_OPTIONS,
 };
 
-export const CLI_VERSION = "1.0.2";
+export const CLI_VERSION = "1.0.3";
 export const CLI_NAME = "proofweave";
 
 export interface ParsedCLIArguments {
