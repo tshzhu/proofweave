@@ -357,24 +357,43 @@ export function renderLatex(
       byOwnerAndTag: new Map(),
       byTag: new Map(),
     },
-    cleanupUsage: { setNotation: false, transposeNotation: false },
+    cleanupUsage: {
+      mathSymbolNotation: {
+        families: new Map(),
+        matrices: new Map(),
+        vectors: new Map(),
+      },
+      setNotation: false,
+      transposeNotation: false,
+    },
   };
   indexDocument(ast, context);
   const body = renderBlocks(ast.blocks, context, "outside")
     .replace(/[ \t]+$/gm, "")
     .trim();
-  const declarations: string[] = [];
+  const declarationGroups: string[] = [];
+  if (options.cleanup.normalizeMathSymbolNotation) {
+    for (const category of ["vectors", "matrices", "families"] as const) {
+      const macros = context.cleanupUsage.mathSymbolNotation[category];
+      if (macros.size > 0) {
+        declarationGroups.push([...macros].map(([macro, source]) => `\\newcommand{${macro}}{${source}}`).join("\n"));
+      }
+    }
+  }
+  const semanticDeclarations: string[] = [];
   if (options.cleanup.unifySetNotation && context.cleanupUsage.setNotation) {
-    declarations.push(String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set`);
+    semanticDeclarations.push(String.raw`\newcommand{\set}[1]{\left\{#1\right\}} % set`);
   }
   if (options.cleanup.unifyTransposeNotation && context.cleanupUsage.transposeNotation) {
-    declarations.push(`\\newcommand{\\transpose}{{${options.cleanup.transposeExpression}}} % transpose`);
+    semanticDeclarations.push(`\\newcommand{\\transpose}{{${options.cleanup.transposeExpression}}} % transpose`);
   }
+  if (semanticDeclarations.length > 0) declarationGroups.push(semanticDeclarations.join("\n"));
+  const declarations = declarationGroups.join("\n\n");
   const latex = declarations.length === 0
     ? body
     : body
-      ? declarations.join("\n") + "\n\n" + body
-      : declarations.join("\n");
+      ? declarations + "\n\n" + body
+      : declarations;
   return { latex, diagnostics };
 }
 

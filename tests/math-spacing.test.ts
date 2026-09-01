@@ -52,6 +52,44 @@ test('normalizes not-equal and empty-set variants to configurable commands', () 
   assert.equal(formatMathSpacing(String.raw`a\ne b, A=\emptyset`, { ...DEFAULT_MATH_SPACING_OPTIONS, enabled: false }, disabled), String.raw`a\ne b, A=\emptyset`)
 })
 
+test('uses macros for single bold and mathcal Latin or Greek symbols', () => {
+  const usage = {
+    mathSymbolNotation: { families: new Map<string, string>(), matrices: new Map<string, string>(), vectors: new Map<string, string>() },
+    setNotation: false,
+    transposeNotation: false,
+  }
+  const input = String.raw`\mathbf{M} + \bm{\Theta} + \boldsymbol A + \mathbf{v} + \bm{\xi} + \boldsymbol w + \mathcal{F} + \mathcal X + \bm*{\alpha} + \mathcal* Y`
+  const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, cleanup(), usage)
+  assert.equal(output, String.raw`\mM + \mTheta + \mA + \vv + \vxi + \vw + \fF + \fX + \valpha + \fY`)
+  assert.deepEqual([...usage.mathSymbolNotation.vectors], [
+    [String.raw`\vv`, String.raw`\bm{v}`],
+    [String.raw`\vxi`, String.raw`\bm{\xi}`],
+    [String.raw`\vw`, String.raw`\bm{w}`],
+    [String.raw`\valpha`, String.raw`\bm{\alpha}`],
+  ])
+  assert.deepEqual([...usage.mathSymbolNotation.matrices], [
+    [String.raw`\mM`, String.raw`\bm{M}`],
+    [String.raw`\mTheta`, String.raw`\bm{\Theta}`],
+    [String.raw`\mA`, String.raw`\bm{A}`],
+  ])
+  assert.deepEqual([...usage.mathSymbolNotation.families], [
+    [String.raw`\fF`, String.raw`\mathcal{F}`],
+    [String.raw`\fX`, String.raw`\mathcal{X}`],
+    [String.raw`\fY`, String.raw`\mathcal{Y}`],
+  ])
+})
+
+test('keeps compound, text, opaque, and disabled math symbols unchanged', () => {
+  const input = String.raw`\mathbf{abcd} + \mathbf{AB} + \mathcal{FX} + \mathcal{x} + \bm{\unknown} + \text{\mathbf{x}} + \operatorname{\mathcal{F}} + \tag{\mathbf{M}} % \bm{z}`
+  assert.equal(formatMathSpacing(input), input)
+  assert.equal(
+    formatMathSpacing(String.raw`\mathbf{M} + \bm{\xi} + \mathcal{F}`, DEFAULT_MATH_SPACING_OPTIONS, cleanup({ normalizeMathSymbolNotation: false })),
+    String.raw`\mathbf{M} + \bm{\xi} + \mathcal{F}`,
+  )
+  assert.equal(formatMathSpacing(String.raw`\mathbf{M} + \bm{\xi} + \mathcal{F}`), String.raw`\mM + \vxi + \fF`)
+  assert.equal(formatMathSpacing(String.raw`\mM + \vxi + \fF`), String.raw`\mM + \vxi + \fF`)
+})
+
 test('unifies matched set-brace size variants and preserves opaque text', () => {
   const configured = cleanup({ unifySetNotation: true })
   const input = String.raw`\{x \in A\} + \big\{y\big\} + \Bigl\{z\Bigr\} + \left\{w\right\} + \left\lbrace q \right\rbrace + \text{literal \{q\}}`
@@ -81,6 +119,7 @@ test('handles nested, multiline, and unmatched set delimiters conservatively', (
 
 test('unifies transpose spellings and leaves non-transpose superscripts unchanged', () => {
   const configured = cleanup({
+    normalizeMathSymbolNotation: false,
     unifyTransposeNotation: true,
     transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}`,
   })
@@ -120,7 +159,7 @@ test('the master switch only disables math spacing rules', () => {
   assert.equal(formatMathSpacing(String.raw`\mathcal X                    \tag{1}`, {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
-  }), String.raw`\mathcal{X} \tag{1}`)
+  }, cleanup({ normalizeMathSymbolNotation: false })), String.raw`\mathcal{X} \tag{1}`)
   assert.equal(formatMathSpacing(String.raw`x                    \text{a    b} % keep    comment`, {
     ...DEFAULT_MATH_SPACING_OPTIONS,
     enabled: false,
@@ -139,14 +178,15 @@ test('braces single atoms after math font commands by default', () => {
   ])
 
   for (const [input, expected] of examples) {
-    assert.equal(formatMathSpacing(input), expected)
-    assert.equal(formatMathSpacing(formatMathSpacing(input)), expected)
+    const bracingOnly = cleanup({ normalizeMathSymbolNotation: false })
+    assert.equal(formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, bracingOnly), expected)
+    assert.equal(formatMathSpacing(formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, bracingOnly), DEFAULT_MATH_SPACING_OPTIONS, bracingOnly), expected)
   }
 
   assert.equal(formatMathSpacing(
     String.raw`\mathcal X`,
     DEFAULT_MATH_SPACING_OPTIONS,
-    cleanup({ fontCommandBraces: false }),
+    cleanup({ fontCommandBraces: false, normalizeMathSymbolNotation: false }),
   ), String.raw`\mathcal X`)
 })
 
@@ -303,7 +343,7 @@ test('is token-preserving and idempotent across manuscript math samples', {
   assert.ok(segments.length > 500)
 
   for (const input of segments) {
-    const cleanup = { ...DEFAULT_MATH_CLEANUP_OPTIONS, unifySetNotation: false, unifyTransposeNotation: false, normalizeInequalityCommands: false }
+    const cleanup = { ...DEFAULT_MATH_CLEANUP_OPTIONS, normalizeMathSymbolNotation: false, unifySetNotation: false, unifyTransposeNotation: false, normalizeInequalityCommands: false }
     const output = formatMathSpacing(input, DEFAULT_MATH_SPACING_OPTIONS, cleanup)
     assert.equal(formatMathSpacing(output, DEFAULT_MATH_SPACING_OPTIONS, cleanup), output)
     assert.equal(output.replace(/\s/g, ''), input.replace(/\s/g, ''))

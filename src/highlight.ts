@@ -222,10 +222,39 @@ function highlightMarkdownHeading(text: string): string {
   return token('heading', text)
 }
 
+function markdownCommentStart(value: string, start = 0): number {
+  for (let index = start; index < value.length; index += 1) {
+    if (value[index] === '`') {
+      const close = value.indexOf('`', index + 1)
+      if (close < 0) return -1
+      index = close
+      continue
+    }
+    if (value.startsWith('<!--', index)) return index
+  }
+  return -1
+}
+
+function highlightMarkdownInlineWithComments(value: string): { commentOpen: boolean; html: string } {
+  let html = ''
+  let cursor = 0
+  while (cursor < value.length) {
+    const start = markdownCommentStart(value, cursor)
+    if (start < 0) return { commentOpen: false, html: html + highlightMarkdownInline(value.slice(cursor)) }
+    html += highlightMarkdownInline(value.slice(cursor, start))
+    const close = value.indexOf('-->', start + 4)
+    if (close < 0) return { commentOpen: true, html: html + token('comment', value.slice(start)) }
+    html += token('comment', value.slice(start, close + 3))
+    cursor = close + 3
+  }
+  return { commentOpen: false, html }
+}
+
 function highlightMarkdown(value: string): string {
   const lines = value.split('\n')
   let fence: '```' | '~~~' | undefined
   let display: 'dollars' | 'brackets' | 'equation' | undefined
+  let comment = false
 
   return lines.map((line) => {
     const trimmed = line.trimStart()
@@ -238,60 +267,85 @@ function highlightMarkdown(value: string): string {
       return token('code', line)
     }
 
-    if (display) {
-      const highlighted = highlightLatexFragment(line, false)
-      if (
-        (display === 'dollars' && trimmed.includes('$$'))
-        || (display === 'brackets' && trimmed.includes('\\]'))
-        || (display === 'equation' && trimmed.includes('\\end{equation}'))
-      ) display = undefined
-      return `<span class="token token-math">${highlighted}</span>`
+    let commentOutput = ''
+    let cursor = 0
+    if (comment) {
+      const close = line.indexOf('-->')
+      if (close < 0) return token('comment', line)
+      commentOutput = token('comment', line.slice(0, close + 3))
+      cursor = close + 3
+      comment = false
     }
 
-    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-      const marker = trimmed.slice(0, 3) as '```' | '~~~'
-      if (trimmed.indexOf(marker, 3) < 0) fence = marker
-      return token('marker', line)
+    const source = line.slice(cursor)
+    const commentStart = markdownCommentStart(source)
+    const normal = commentStart < 0 ? source : source.slice(0, commentStart)
+
+    const highlightNormal = (): string => {
+      const normalTrimmed = normal.trimStart()
+
+      if (display) {
+        const highlighted = highlightLatexFragment(normal, false)
+        if (
+          (display === 'dollars' && normalTrimmed.includes('$$'))
+          || (display === 'brackets' && normalTrimmed.includes('\\]'))
+          || (display === 'equation' && normalTrimmed.includes('\\end{equation}'))
+        ) display = undefined
+        return `<span class="token token-math">${highlighted}</span>`
+      }
+
+      if (normalTrimmed.startsWith('```') || normalTrimmed.startsWith('~~~')) {
+        const marker = normalTrimmed.slice(0, 3) as '```' | '~~~'
+        if (normalTrimmed.indexOf(marker, 3) < 0) fence = marker
+        return token('marker', normal)
+      }
+
+      if (normalTrimmed.startsWith('$$')) {
+        if (normalTrimmed.indexOf('$$', 2) < 0) display = 'dollars'
+        return `<span class="token token-math">${highlightLatexFragment(normal, false)}</span>`
+      }
+      if (normalTrimmed.startsWith('\\[')) {
+        if (!normalTrimmed.includes('\\]', 2)) display = 'brackets'
+        return `<span class="token token-math">${highlightLatexFragment(normal, false)}</span>`
+      }
+      if (normalTrimmed.startsWith('\\begin{equation}')) {
+        if (!normalTrimmed.includes('\\end{equation}')) display = 'equation'
+        return `<span class="token token-math">${highlightLatexFragment(normal, false)}</span>`
+      }
+
+      const heading = /^(\s*)(#{1,6})([ \t]+)(.*)$/.exec(normal)
+      if (heading) {
+        return escapeHtml(heading[1] ?? '')
+          + token('marker', heading[2] ?? '')
+          + escapeHtml(heading[3] ?? '')
+          + highlightMarkdownHeading(heading[4] ?? '')
+      }
+
+      const list = /^(\s*)([-+*]|\d+[.)])([ \t]+)(.*)$/.exec(normal)
+      if (list) {
+        return escapeHtml(list[1] ?? '')
+          + token('list-marker', list[2] ?? '')
+          + escapeHtml(list[3] ?? '')
+          + highlightMarkdownInline(list[4] ?? '')
+      }
+
+      const quote = /^(\s*)(>)([ \t]?)(.*)$/.exec(normal)
+      if (quote) {
+        return escapeHtml(quote[1] ?? '')
+          + token('marker', quote[2] ?? '')
+          + escapeHtml(quote[3] ?? '')
+          + token('quote', quote[4] ?? '')
+      }
+
+      return highlightMarkdownInline(normal)
     }
 
-    if (trimmed.startsWith('$$')) {
-      if (trimmed.indexOf('$$', 2) < 0) display = 'dollars'
-      return `<span class="token token-math">${highlightLatexFragment(line, false)}</span>`
-    }
-    if (trimmed.startsWith('\\[')) {
-      if (!trimmed.includes('\\]', 2)) display = 'brackets'
-      return `<span class="token token-math">${highlightLatexFragment(line, false)}</span>`
-    }
-    if (trimmed.startsWith('\\begin{equation}')) {
-      if (!trimmed.includes('\\end{equation}')) display = 'equation'
-      return `<span class="token token-math">${highlightLatexFragment(line, false)}</span>`
-    }
+    let output = commentOutput + highlightNormal()
+    if (commentStart < 0) return output
 
-    const heading = /^(\s*)(#{1,6})([ \t]+)(.*)$/.exec(line)
-    if (heading) {
-      return escapeHtml(heading[1] ?? '')
-        + token('marker', heading[2] ?? '')
-        + escapeHtml(heading[3] ?? '')
-        + highlightMarkdownHeading(heading[4] ?? '')
-    }
-
-    const list = /^(\s*)([-+*]|\d+[.)])([ \t]+)(.*)$/.exec(line)
-    if (list) {
-      return escapeHtml(list[1] ?? '')
-        + token('list-marker', list[2] ?? '')
-        + escapeHtml(list[3] ?? '')
-        + highlightMarkdownInline(list[4] ?? '')
-    }
-
-    const quote = /^(\s*)(>)([ \t]?)(.*)$/.exec(line)
-    if (quote) {
-      return escapeHtml(quote[1] ?? '')
-        + token('marker', quote[2] ?? '')
-        + escapeHtml(quote[3] ?? '')
-        + token('quote', quote[4] ?? '')
-    }
-
-    return highlightMarkdownInline(line)
+    const highlighted = highlightMarkdownInlineWithComments(source.slice(commentStart))
+    comment = highlighted.commentOpen
+    return output + highlighted.html
   }).join('\n')
 }
 

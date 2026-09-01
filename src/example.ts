@@ -13,7 +13,7 @@ This Markdown note is kept as LaTeX comments.
 
 ### statement
 
-For every \(x\in\mathcal X\), define \(S = \{v \in \mathbb R^d : v^{\mathsf{T}} v \le 1\}\). Then
+For every \(\mathbf{x}\in\mathcal X\), define \(S = \{\mathbf{v} \in \mathbb R^d : \mathbf{v}^{\mathsf{T}} \mathbf{v} \le 1\}\). Let \(\bm{\Theta}\) be the model matrix. Then
 \[
   |f(x)| \le C.
 \]
@@ -35,7 +35,7 @@ The construction is deterministic, so the result follows.
 ## A useful checklist
 
 - Keep the statement readable.
-- Preserve \(\mathcal X\) exactly.
+- Use consistent notation for \(\mathcal X\), \(\mathbf{x}\), and \(\bm{\Theta}\).
   - Nested items are supported.
 - Use a display when a formula deserves its own line.
 `;
