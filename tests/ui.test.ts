@@ -40,6 +40,7 @@ test('uses the BibTeX Tidy editor and fixed-sidebar structure', () => {
 
 test('uses the ProofWeave brand and concise conversion description', () => {
   assert.match(html, /<title>ProofWeave - Turn Markdown proofs into clean LaTeX<\/title>/)
+  assert.doesNotMatch(html, /<title>ProofWeave —/)
   assert.match(html, /<h1>ProofWeave<\/h1>/)
   assert.match(html, /Convert Markdown mathematical proofs into clean, well-formatted LaTeX\./)
   assert.doesNotMatch(html, /AI-generated|never uploaded|publishing, reading, and continued editing/)
