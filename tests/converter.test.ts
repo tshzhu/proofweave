@@ -13,7 +13,7 @@ test('uses the requested formatter defaults', () => {
     statementDisplayMath: 'equation',
     outsideDisplayMath: 'brackets',
     sectionNumbering: 'unnumbered',
-    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\leq`, normalizeNotEqualCommand: true, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
+    cleanup: { removeBoxed: true, normalizeLabelPrefixes: true, fontCommandBraces: true, collapseSpaces: true, normalizeInequalityCommands: true, greaterEqualCommand: String.raw`\ge`, lessEqualCommand: String.raw`\le`, normalizeNotEqualCommand: true, notEqualCommand: String.raw`\neq`, normalizeEmptySetCommand: true, emptySetCommand: String.raw`\varnothing`, unifySetNotation: true, unifyTransposeNotation: true, transposeExpression: String.raw`\mkern-1.0mu\mathsf{T}` },
     mathSpacing: { enabled: true, relations: true, binaryOperators: true, punctuation: true, compactParentheses: true, pairedBars: true, namedFunctions: true },
   })
 })
@@ -31,9 +31,9 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \leq 1}$. Then
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
 	\begin{equation}
-		  | f(x) | \leq C.
+		  | f(x) | \le C.
 	\end{equation}
 \end{lemma}
 

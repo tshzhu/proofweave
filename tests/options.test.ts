@@ -99,7 +99,7 @@ test('serializes and parses all independent cleanup options', () => {
     collapseSpaces: true,
     normalizeInequalityCommands: true,
     greaterEqualCommand: String.raw`\ge`,
-    lessEqualCommand: String.raw`\leq`,
+    lessEqualCommand: String.raw`\le`,
     normalizeNotEqualCommand: true,
     notEqualCommand: String.raw`\neq`,
     normalizeEmptySetCommand: true,
@@ -138,13 +138,13 @@ test('serializes and parses all independent cleanup options', () => {
     String.raw`\mathbf{T}`,
   )
   configured.cleanup.greaterEqualCommand = String.raw`\geqslant`
-  configured.cleanup.lessEqualCommand = String.raw`\le`
+  configured.cleanup.lessEqualCommand = String.raw`\leq`
   const args = optionsToCLIArgs(configured)
   assert.ok(args.includes(String.raw`--ge-command=\geqslant`))
-  assert.ok(args.includes(String.raw`--le-command=\le`))
+  assert.ok(args.includes(String.raw`--le-command=\leq`))
   const parsedCommands = parseCLIArguments(args)
   assert.equal(parsedCommands.options.cleanup.greaterEqualCommand, String.raw`\geqslant`)
-  assert.equal(parsedCommands.options.cleanup.lessEqualCommand, String.raw`\le`)
+  assert.equal(parsedCommands.options.cleanup.lessEqualCommand, String.raw`\leq`)
   configured.cleanup.notEqualCommand = String.raw`\ne`
   configured.cleanup.emptySetCommand = String.raw`\emptyset`
   const symbolArgs = optionsToCLIArgs(configured)

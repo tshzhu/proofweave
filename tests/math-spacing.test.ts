@@ -33,7 +33,7 @@ test('normalizes greater-or-equal and less-or-equal variants to configurable com
   const input = String.raw`a>=b, c> =d, e\ge f, g\geq h, i\geqq j, k\geqslant l; m<=n, o< =p, q\le r, s\leq t, u\leqq v, w\leqslant x`
   assert.equal(
     formatMathSpacing(input),
-    String.raw`a \ge b, c \ge d, e \ge f, g \ge h, i \ge j, k \ge l; m \leq n, o \leq p, q \leq r, s \leq t, u \leq v, w \leq x`,
+    String.raw`a \ge b, c \ge d, e \ge f, g \ge h, i \ge j, k \ge l; m \le n, o \le p, q \le r, s \le t, u \le v, w \le x`,
   )
   const configured = cleanup({ greaterEqualCommand: String.raw`\geqslant`, lessEqualCommand: String.raw`\le` })
   assert.equal(formatMathSpacing('a>=b, c< =d', DEFAULT_MATH_SPACING_OPTIONS, configured), String.raw`a \geqslant b, c \le d`)
@@ -97,7 +97,7 @@ test('formats the requested examples without changing mathematical tokens', () =
   const examples = new Map([
     ['n<1', 'n < 1'],
     ['x*y', 'x * y'],
-    ['|f(x)|\\le1', '| f(x) | \\leq 1'],
+    ['|f(x)|\\le1', '| f(x) | \\le 1'],
     ['f(x+(y+(\\sin z)^2)^2)', 'f(x + (y + (\\sin z)^2)^2)'],
     ['x_{(1)},\\cdots,x_{(T)}', 'x_{(1)}, \\cdots, x_{(T)}'],
   ])
@@ -106,7 +106,7 @@ test('formats the requested examples without changing mathematical tokens', () =
     const actual = formatMathSpacing(input)
     assert.equal(actual, expected)
   }
-  assert.match(formatMathSpacing('|f(x)|\\le1'), /\\leq 1$/)
+  assert.match(formatMathSpacing('|f(x)|\\le1'), /\\le 1$/)
   assert.doesNotMatch(formatMathSpacing('|f(x)|\\le1'), /C/)
 })
 
@@ -194,7 +194,7 @@ test('each spacing rule can operate independently', () => {
   assert.equal(formatMathSpacing('n<1,x*y', only('binaryOperators')), 'n<1,x * y')
   assert.equal(formatMathSpacing('x,y ;z', only('punctuation')), 'x, y; z')
   assert.equal(formatMathSpacing('f ( x + y )', only('compactParentheses')), 'f(x + y)')
-  assert.equal(formatMathSpacing('|f(x)|\\le1', only('pairedBars')), '| f(x) |\\leq1')
+  assert.equal(formatMathSpacing('|f(x)|\\le1', only('pairedBars')), '| f(x) |\\le1')
   assert.equal(formatMathSpacing('\\sin z+\\cos(x)', only('namedFunctions')), '\\sin z+\\cos(x)')
   assert.equal(formatMathSpacing('\\operatorname{diam} X'), '\\operatorname{diam} X')
 })
@@ -236,7 +236,7 @@ test('treats scripted atoms as operands and formats mathematical command groups'
 
 test('formats align markers, TeX relations, paired delimiters, and named functions', () => {
   assert.equal(formatMathSpacing('x&=y'), 'x &= y')
-  assert.equal(formatMathSpacing('&\\le y'), '&\\leq y')
+  assert.equal(formatMathSpacing('&\\le y'), '&\\le y')
   assert.equal(formatMathSpacing('x\\subseteq A'), 'x \\subseteq A')
   assert.equal(formatMathSpacing('A\\not\\subseteq B'), 'A \\not\\subseteq B')
   assert.equal(formatMathSpacing('\\|f(x)\\|'), '\\|f(x)\\|')
@@ -250,7 +250,7 @@ test('adds readable implicit multiplication and punctuation spacing', () => {
   const examples = new Map([
     [String.raw`\mathbb{S}^d = \{x \in \mathbb{R}^{d+1}:\|x\|_2 = 1\},\qquad d \ge 1,`, String.raw`\mathbb{S}^d = \set{x \in \mathbb{R}^{d+1} : \|x\|_2 = 1}, \qquad d \ge 1,`],
     [String.raw`\mu_t(x) = k_t(x)^\top(K_t + \rho I_t)^{-1}y_t,`, String.raw`\mu_t(x) = k_t(x)^\transpose(K_t + \rho I_t)^{-1} y_t,`],
-    [String.raw`\mathbb{E} e^{u\varepsilon_i} \le e^{u^2\varsigma^2/2}`, String.raw`\mathbb{E} e^{u \varepsilon_i} \leq e^{u^2 \varsigma^2 / 2}`],
+    [String.raw`\mathbb{E} e^{u\varepsilon_i} \le e^{u^2\varsigma^2/2}`, String.raw`\mathbb{E} e^{u \varepsilon_i} \le e^{u^2 \varsigma^2 / 2}`],
     [String.raw`\kappa = \frac{d\theta}{d + \theta}.`, String.raw`\kappa = \frac{d \theta}{d + \theta}.`],
     [String.raw`f - \widehat f_t = A^{-1}(\rho f - \Phi^*\varepsilon_{1:t}).`, String.raw`f - \widehat{f}_t = A^{-1} (\rho f - \Phi^* \varepsilon_{1:t}).`],
   ])
@@ -279,7 +279,7 @@ test('preserves line breaks, indentation, comments, and becomes idempotent', () 
   assert.equal(once, twice)
   assert.match(once, /^    \\begin\{aligned\}/)
   assert.match(once, /x &= y \+ z, \\\\ % keep a=b in this comment/)
-  assert.match(once, /w &\\leq 1/)
+  assert.match(once, /w &\\le 1/)
   assert.equal(once.split('\n').length, input.split('\n').length)
   assert.equal(once.replace(/\\leq/g, '\\le').replace(/\s/g, ''), input.replace(/\s/g, ''))
 })

@@ -47,7 +47,7 @@ export const DEFAULT_MATH_CLEANUP_OPTIONS: Readonly<MathCleanupOptions> = {
   collapseSpaces: true,
   normalizeInequalityCommands: true,
   greaterEqualCommand: '\\ge',
-  lessEqualCommand: '\\leq',
+  lessEqualCommand: '\\le',
   normalizeNotEqualCommand: true,
   notEqualCommand: '\\neq',
   normalizeEmptySetCommand: true,

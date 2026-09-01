@@ -54,7 +54,7 @@ export const DEFAULT_CLEANUP_OPTIONS: Readonly<CleanupOptions> = {
   collapseSpaces: true,
   normalizeInequalityCommands: true,
   greaterEqualCommand: "\\ge",
-  lessEqualCommand: "\\leq",
+  lessEqualCommand: "\\le",
   normalizeNotEqualCommand: true,
   notEqualCommand: "\\neq",
   normalizeEmptySetCommand: true,

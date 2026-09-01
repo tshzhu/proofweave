@@ -72,9 +72,9 @@ This example demonstrates headings, theorem environments, lists, and math.
 % \[x*y\]
 
 \begin{lemma}\label{lem:uniform-noise}
-	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \leq 1}$. Then
+	For every $x \in \mathcal{X}$, define $S = \set{v \in \mathbb{R}^d : v^\transpose v \le 1}$. Then
 	\begin{equation}
-		  | f(x) | \leq C.
+		  | f(x) | \le C.
 	\end{equation}
 \end{lemma}
 
@@ -217,7 +217,7 @@ math-spacing subrules are effective only while `--math-spacing` is enabled.
 | `--[no-]collapse-spaces` | Collapse repeated literal spaces inside math to one space while preserving explicit TeX spacing commands. |
 | `--[no-]normalize-inequality-commands` | Normalize `>=`, `> =`, `\ge`, `\geq`, `\geqq`, `\geqslant`, plus `<=`, `< =`, `\le`, `\leq`, `\leqq`, and `\leqslant` (enabled by default). |
 | `--ge-command=LATEX` | Target greater-or-equal control word; default is `\ge`. |
-| `--le-command=LATEX` | Target less-or-equal control word; default is `\leq`. |
+| `--le-command=LATEX` | Target less-or-equal control word; default is `\le`. |
 | `--[no-]normalize-not-equal-command` | Normalize `\ne`, `\neq`, and `\not=` (enabled by default). |
 | `--ne-command=LATEX` | Target not-equal control word; default is `\neq`. |
 | `--[no-]normalize-empty-set-command` | Normalize `\emptyset` and `\varnothing` (enabled by default). |
