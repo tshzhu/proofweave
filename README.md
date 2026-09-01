@@ -297,4 +297,4 @@ README, LICENSE, and package metadata.
 
 ## License
 
-MIT
+[MIT](LICENSE)
