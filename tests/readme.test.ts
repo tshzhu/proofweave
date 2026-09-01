@@ -8,6 +8,10 @@ import { convertMarkdown } from '../src/renderer.ts'
 
 const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
 
+const cliStart = readme.indexOf('## CLI')
+const browserStart = readme.indexOf('## Browser')
+const cliSection = readme.slice(cliStart, browserStart < 0 ? undefined : browserStart)
+
 function markedFence(name: 'input' | 'output', language: 'markdown' | 'latex'): string {
   const fence = '```'
   const pattern = new RegExp(
@@ -41,7 +45,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
   })
   assert.equal(helpOptions.length, 34)
   for (const option of helpOptions) {
-    assert.ok(readme.includes(`\`${option}\``), `README does not document ${option}`)
+    assert.ok(cliSection.includes(option), `README does not document ${option}`)
   }
 
   for (const valueSet of [
@@ -51,7 +55,7 @@ test('documents every public CLI flag and alias exposed by CLI help', () => {
     '--other-display=dollars|brackets|equation',
     '--section-numbering=unnumbered|numbered',
   ]) {
-    assert.ok(readme.includes(`\`${valueSet}\``), `README does not document ${valueSet}`)
+    assert.ok(cliSection.includes(valueSet), `README does not document ${valueSet}`)
   }
 })
 
@@ -60,21 +64,42 @@ test('describes CLI defaults, streams, failures, and only supported installation
     'Node.js 22 or newer',
     'npm install --global proofweave',
     'npx proofweave@latest',
-    'Trusted Publishing',
     'stdin',
     'stdout',
     'stderr',
-    'non-zero exit status',
-    '`--modify` is destructive',
+    'Only one `.md` input file is accepted',
     'enabled by default',
-    'Tidy options remain effective when `--no-math-spacing` is used',
-    'math-spacing subrules are effective only while `--math-spacing` is enabled',
+    'Tidy options remain active when `--no-math-spacing` is used',
+    'math-spacing subrules are',
   ]) {
   assert.ok(readme.includes(phrase), `README is missing CLI behavior: ${phrase}`)
   }
-  assert.match(readme, /cannot be combined\s+with `--output`/)
   assert.doesNotMatch(readme, /docker compose|from ['"]proofweave['"]/i)
   assert.doesNotMatch(readme, /AI-generated|publication-ready/)
   assert.doesNotMatch(CLI_HELP, /AI-generated|publication-ready/)
-  assert.match(readme, /npm package contains only the production CLI bundle/i)
+  assert.match(readme, /npm package contains only the CLI bundle/i)
+  assert.doesNotMatch(cliSection, /Publishing releases|Supported input and output/)
+  assert.doesNotMatch(cliSection, /^\|/m)
+})
+
+test('keeps the README CLI section compact and grouped like the reference tidy tools', () => {
+  for (const heading of [
+    '## Example',
+    '## CLI',
+    '### Installation and usage',
+    '### Options',
+    '#### General',
+    '#### Conversion',
+    '#### Tidy',
+    '#### Math spacing',
+    '## Browser',
+    '### Shareable option URLs',
+    '## Development',
+    '## License',
+  ]) assert.match(readme, new RegExp(`^${heading}$`, 'm'))
+  assert.equal(cliSection.includes('### Publishing releases'), false)
+  assert.equal(readme.includes('## Supported input and output'), false)
+  assert.equal((cliSection.match(/```text/g) ?? []).length, 5)
+  assert.match(readme, /^- The output is a LaTeX body/m)
+  assert.match(readme, /^- Math spacing, canonical labels/m)
 })

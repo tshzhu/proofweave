@@ -106,7 +106,7 @@ test('provides help/version and rejects invalid invocation modes', () => {
 
   const version = runCLI(['--version'])
   assert.equal(version.status, 0)
-  assert.match(version.stdout, /^1\.0\.1/)
+  assert.match(version.stdout, /^1\.0\.2/)
 
   const unknown = runCLI(['--unknown'])
   assert.equal(unknown.status, 1)
